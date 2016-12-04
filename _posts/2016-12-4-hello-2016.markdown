@@ -58,6 +58,6 @@ Nian Tianlei 的 Blog 就这么开通了,过程非常艰辛。
     `git add .`       
 	`git commit -m "first"`        
 	`git remote add origin https://github.com/username/rep.git`         
-	`git push origin gh-pages`           
+	`git push origin master`           
 其中username是用户名，rep是项目名。
 过程是这么个过程，中间我遇到很多错误，总之都解决了。不容易。。
