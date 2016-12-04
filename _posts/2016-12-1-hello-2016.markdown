@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "Welcome to Nian blog"
-subtitle:   " \"Hello World, Nian Tianlei\""
+subtitle:   " \"Hello World, I'm Nian Tianlei\""
 date:       2016-12-1 12:00:12
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
@@ -39,7 +39,7 @@ Nian Tianlei 的 Blog 就这么开通了,过程非常艰辛。
 
 其优点非常明显：
 
-* *Markdown* 语法简答，直接就写。
+* **Markdown** 语法简答，直接就写。
 * 简单的git指令，易学好懂
 * Jekyll 可以自己搞效果，网站可以安装自己喜欢的风格随意更改。
 
@@ -55,8 +55,8 @@ Nian Tianlei 的 Blog 就这么开通了,过程非常艰辛。
 每次我搞完`jekyll serve`,之后，本地预览成功，push过程总是有错，
 我把指令写在下面吧：
 `git add .
-git commit -m "first"
-git remote add origin https://github.com/username/rep.git
-git push origin gh-pages`
+git commit -m "first"  
+git remote add origin https://github.com/username/rep.git  
+git push origin gh-pages`  
 其中username是用户名，rep是项目名。
 过程是这么个过程，中间我遇到很多错误，总之都解决了。不容易。。
