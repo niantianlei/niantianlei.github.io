@@ -5,7 +5,7 @@ header-img: img/home-bg.jpg
 email: 386502782@163.com
 description: "java、Android、游戏、台球@Nian Tianlei Blog"
 keyword: "java、Android"
-url: "http://niantianlei.github.io"              # your host, for absolute URL
+url: "https://niantianlei.github.io"              # your host, for absolute URL
 baseurl: ""                                      # for example, '/blog' if your blog hosted on 'host/blog'
 
 
