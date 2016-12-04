@@ -14,7 +14,7 @@ baseurl: ""                                      # for example, '/blog' if your 
 RSS: false
 weibo_username:     念天磊
 zhihu_username:     念天磊
-github_username:    leitiannian
+github_username:    niantianlei
 #twitter_username:  
 
 
@@ -51,7 +51,7 @@ kramdown:
 # Duoshuo settings
 duoshuo_username: niantianlei
 # Share component is depend on Comment so we can NOT use share only.
-duoshuo_share: true                     # set to false if you want to use Comment without Sharing
+duoshuo_share: false                    # set to false if you want to use Comment without Sharing
 
 
 
@@ -68,7 +68,7 @@ ga_domain: niantianlei.github.io
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
 sidebar-about-description: "认真学程序，踏实写代码<br>世界那么大，多学加多看"
-sidebar-avatar: /img/avatar-hux.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar-avatar: /img/at.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
