@@ -1,0 +1,49 @@
+---
+layout:     post
+title:      "eclipse常用指令"
+subtitle:   " \"Hello World, I'm Nian Tianlei\""
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+tags:
+    - java
+---
+
+
+### 总结了一些我自己常用的eclipse指令：   
+  
+Ctrl+左键：       查看类、方法、变量的定义  
+Ctrl+m：          编辑窗口最大化，再按复原  
+Ctrl+alt+上下方向键：复制当前行到…  
+Alt+上下方向键：  移动当前行    
+Alt+上下方向键：  一般在  ctrl+左键  操作后面使用，跳回刚才查看的位置  
+Ctrl+o:           列出类的方法及属性。  
+Ctrl+d:           删除当前行  
+Ctrl+/:           注释当前行,再按则取消注释  
+Alt+Shift+F:      把Class中的local变量变为field变量  
+Alt+Shift+R:      重命名  
+Shift+Enter:      在当前行的下一行插入空行  
+Shift+Ctrl+Enter: 在当前行插入空行  
+Ctrl+Q:           定位到最后编辑的地方  
+Ctrl+/(小键盘):   折叠当前类中的所有代码  
+Ctrl+×(小键盘):   展开当前类中的所有代码  
+
+    
+运行
+作用域   功能          快捷键    
+全局   单步返回          F7   
+全局   单步跳过          F6   
+全局   单步跳入          F5   
+全局  单步跳入选择       Ctrl+F5   
+全局  调试上次启动       F11   
+全局     继续            F8   
+全局 使用过滤器单步执行  Shift+F5   
+全局  添加/去除断点      Ctrl+Shift+B   
+全局     显示            Ctrl+D   
+全局   运行上次启动      Ctrl+F11   
+全局    运行至行         Ctrl+R   
+全局     执行            Ctrl+U  
+ 
+
+
+<p id = "build"></p>
+
