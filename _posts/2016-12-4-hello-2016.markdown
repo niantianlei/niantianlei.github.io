@@ -1,0 +1,63 @@
+---
+layout:     post
+title:      "Welcome to Nian blog"
+subtitle:   " \"Hello World, I'm Nian Tianlei\""
+date:       2016-12-4 12:00:12
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+tags:
+    - 生活
+---
+
+> “Yeah! It's on. ”
+
+
+## 前言
+
+Nian Tianlei 的 Blog 就这么开通了,过程非常艰辛。
+
+[跳过废话，直接看技术实现 ](#build)
+
+
+
+2016 年，从这时开始，总算有个写东西的地方了。
+
+
+现在我还是天津大学的硕士生，想写点乱七八糟的东西，总是没地方，于是发现了github pages。这里完全是自己想建成什么样就建成什么样，太适合我，但需要前端基础，哎，，于是我就埋头研究了一段时间，终于有点模样了。
+
+在这里感谢各位大神的博客，[阮一峰这篇](http://www.ruanyifeng.com/blog/2012/08/blogging_with_jekyll.html)比较详细。虽然我遇到的错误，大多都是谷歌帮忙的。
+
+
+<p id = "build"></p>
+---
+
+## 正文
+
+接下来说说搭建这个博客的技术细节。  
+
+两个网站 [GitHub Pages](https://pages.github.com/) + [Jekyll](http://jekyllrb.com/) 搭建博客。
+
+其优点非常明显：
+
+* **Markdown** 语法简答，直接就写。
+* 简单的git指令，易学好懂
+* Jekyll 可以自己搞效果，网站可以安装自己喜欢的风格随意更改。
+
+
+
+---
+
+搭建环境中也没遇到什么坑，不到俩小时搞定了吧。
+基本就是 Git 的流程，相当顺手
+真正的坑是后面，本地库、远程库、push过程。哎呦  费劲。。。
+
+在本地调试需要 `gem install jekyll`， 我另外写一篇博客讲述吧。
+每次我搞完`jekyll serve`,  
+之后，本地预览成功，push过程总是有错，
+我把指令写在下面吧：     
+    `git add .`       
+	`git commit -m "first"`        
+	`git remote add origin https://github.com/username/rep.git`         
+	`git push origin master`           
+其中username是用户名，rep是项目名。
+过程是这么个过程，中间我遇到很多错误，总之都解决了。不容易。。
