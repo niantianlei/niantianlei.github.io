@@ -1,0 +1,47 @@
+---
+layout:     post
+title:      "windows下安装jekyll"
+subtitle:   " \"Hello World, I'm Nian Tianlei\""
+date:       2016-12-4 12:00:12
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+tags:
+    - windows
+---
+
+> “Yeah! It's on. ”
+
+## 前言
+
+网上有很多*jekyll*安装教程，但是好几个教程我按步骤做下来，总是不对，导致安装不成功。*（也许是电脑windows64位系统的问题）*。
+ 其实jekyll在官网上也不建议windows安装。但毕竟win用户还是占大部分的。linux用不习惯，mac成本高。
+ 所以，我写了我自己安装jekyll的过程。
+
+
+<p id = "build"></p>
+---
+
+## 安装ruby
+1.在windows中，jekyll是基于ruby语言的，所以先在[这里](http://rubyinstaller.org/downloads/)，下载相应版本的rubyinstall安装包，勾选上安装过程中的所有选项。     
+2.在[刚刚的链接](http://rubyinstaller.org/downloads/)，下载安装devkit。     
+3.进入cmd.exe，运行如下命令（以我安装在e盘的路径为例）：
+  ![a]({{ "/img/jekyll/1.png" | prepend: site.baseurl }} )     
+  用来生成*config.yml*配置文件，然后运行`ruby dk.rb install`安装devit,但我运行时候报如下错误：   
+  ![b]({{ "/img/jekyll/2.png" | prepend: site.baseurl }} )    
+  解决方法如下：   
+  a.记事本打开*config.yml*，在文件最后另起一行添加*- E:\rub\ruby\Ruby23-x64*（即一个-开头，加上一个空格，再加上ruby的路径），保存。  
+  b.重试`ruby dk.rb install`指令。得到如图：     
+  ![c]({{ "/img/jekyll/3.png" | prepend: site.baseurl }} )           
+  得到如图信息，即安装成功。  
+
+
+---
+## 安装jekyll
+1.输入`gem install jekyll`,这时我电脑发出如下错误：    
+  ![d]({{ "/img/jekyll/4.png" | prepend: site.baseurl }} )      
+2.由于git不支持https，换个源即可解决，输入`gem source -a http://rubygems.org/`或者添加淘宝源镜像。      
+  ![e]({{ "/img/jekyll/5.png" | prepend: site.baseurl }} ) 
+3.按提示输入y。  
+4.重试`gem install jekyll`。
+
+

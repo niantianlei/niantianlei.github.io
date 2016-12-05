@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "Welcome to Nian blog"
+title:      "Welcome to Nian' blog"
 subtitle:   " \"Hello World, I'm Nian Tianlei\""
 date:       2016-12-4 12:00:12
 author:     "Nian Tianlei"
@@ -14,7 +14,7 @@ tags:
 
 ## 前言
 
-Nian Tianlei 的 Blog 就这么开通了,过程非常艰辛。
+念天磊的 Blog 就这么开通了,过程非常艰辛。
 
 [跳过废话，直接看技术实现 ](#build)
 
