@@ -1,11 +1,13 @@
 ---
 layout: post
 title: 安装Android sdk遇到的问题
-subtitle:   " \"Hello World, I'm Nian Tianlei\""
+subtitle:   " \"the questions of installing Android sdk\""
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
     - Android
+    - windows
+    - java
 ---
 
     

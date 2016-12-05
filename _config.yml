@@ -60,10 +60,10 @@ duoshuo_share: true                     # set to false if you want to use Commen
 # Analytics settings
 # Baidu Analytics 
 # ba_track_id: [your track id]
-
+ba_track_id: 06960db8bccee304d53fdb570602d0e4
 # Google Analytics
-ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
-ga_domain: huangxuan.me
+#ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
+#ga_domain: niantianlei.github.io
 
 
 

@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "windows下安装jekyll"
-subtitle:   " \"Hello World, I'm Nian Tianlei\""
+subtitle:   " \"install jekyll in windows\""
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:

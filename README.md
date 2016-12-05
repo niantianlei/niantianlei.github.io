@@ -1,83 +1,33 @@
-#Hux Blog
+#Nian Tianlei' Blog
 
-###[View Live Hux Blog &rarr;](https://huangxuan.me)
+###[View DEMO &rarr;](https://niantianlei.github.io)  
 
-![](http://huangxuan.me/img/blog-desktop.jpg)
+![](http://p1.bpimg.com/567571/83bd22fcc93e0262.png)  
 
 
 
-## Boilerplate (beta)
+##  fork  
 
-Want to clone a boilerplate instead of my buzz blog? Here comes this!  
+If you want to clone my blog? Here comes this!    
 
 ```
-$ git clone git@github.com:Huxpro/huxblog-boilerplate.git
+$ git clone git@github.com:niantianlei/niantianlei.github.io.git  
 ```
 
-**[View Boilerplate Here &rarr;](http://huangxuan.me/huxblog-boilerplate/)**
+##### New Feature  
+
+- **[Comment](#comment)** support [**duoshuo**](http://duoshuo.com/) officially.  
 
 
-## Porting 
-
-- [**Hexo**](https://github.com/Kaijun/hexo-theme-huxblog) by @kaijun
-- [**React-SSR**](https://github.com/LucasIcarus/huxpro.github.io/tree/ssr) by @LucasIcarus
-
-## Translation
-
- - ![cn](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/China.png) **Chinese (Simplified)**: 感谢 [@BrucZhaoR](https://github.com/BruceZhaoR) 的 [中文翻译 &rarr;](https://github.com/Huxpro/huxpro.github.io/blob/master/README.zh.md)
-
-## Features
-
-##### New Feature (V1.5.2)
-
-- Annoyed to delete my blog post after clone or pull? **Boilerplate** comes to help you get started quickly and easily merge update.
-- `-apple-system` is added in font rule, which display beautiful new font **San Francisco** in iOS 9 by default.
-- Fixed [issue#15](https://github.com/Huxpro/huxpro.github.io/issues/15) about code wrap.
-
-##### New Feature (V1.5.1)
-
-- **[Comment](#comment)** support [**Disqus**](http://disqus.com) officially, thanks to @rpsh.
-
-##### New Feature (V1.5)
-
-- **[Comment](#comment)** and **[Analytics](#analytics)** is configurable now! We also add **Google Analytics support** and drop tencents. Both documents is updated.
-
-##### New Feature (V1.4)
-
-- **[Featured Tags](#featured-tags)** is now independent of [SideBar](#sidebar). Both documents is updated.
-- New **[SEO Title](#seo-title)** for SEO usage which is differ from the site title
-
-##### New Feature (V1.3.1)
-
-- Support **PingFang (苹方)**, the new Chinese font presented by [OS X El Capitan](http://www.apple.com/cn/osx/whats-new/)
+-  **[Analytics](#analytics)** is configurable now!   
 
 
-##### New Feature (V1.3)
-
-- Big Improvement to the **Navigation Menu** *(especially in Android)*:  Dropping the old, stuttering, low-performance [Bootstrap collapse.js](http://getbootstrap.com/javascript/#collapse),  replaced with an own wrote, [jank free](http://jankfree.org/) navbar menu in a pretty high-performance implementation of [Google Material Design](https://www.google.com/design/spec/material-design/introduction.html).
-
-<img src="http://huangxuan.me/img/blog-md-navbar.gif" width="320" />
 
 
-##### New Feature (V1.2)
 
 - Brand new **[Keynote Layout](#keynote-layout)** is provided for easily posting beautiful HTML presentations you have created with this blog
 
 
-##### New Feature (V1.1)
-
-- We now support a clean and gorgeous **[SideBar](#sidebar)** for displaying more info
-- **[Friends](#friends)** is also added as a common feature of blog help you do SEO
-
-##### V1.0
-
-- Full-feature **Tag** support
-- **Mobile first** user experience optimization
-- **Typographic optimization** for Chinese Fonts
-- **Network optimizaition** for China, dropping Google webfont, using local CDN
-- Using [Github Flavored Markdown](https://help.github.com/articles/github-flavored-markdown/)
-- Using Baidu, Tencent/QQ analytics
-- Using [DuoShuo](http://duoshuo.com/) as the Disqus-like third party discussion system
 
 
 ## Support
@@ -102,11 +52,6 @@ $ git clone git@github.com:Huxpro/huxblog-boilerplate.git
 * Comment & Analysis
 	* [Comment](#comment)
 	* [Analytics](#analytics)
-* Advanced
-	* [Customization](#customization)
-	* [Header Image](#header-image)
-	* [SEO Title](#seo-title)
-	* [Page Build Warning](#page-build-warning)
 
 #### Environment
 
@@ -120,16 +65,16 @@ You can easily get started by modifying `_config.yml`:
 
 ```
 # Site settings
-title: Hux Blog             # title of your website
-SEOTitle: Hux Blog			# check out docs for more detail
-description: "Cool Blog"    # ...
+title: Nian Tianlei' Blog             # title of your website
+SEOTitle: Nian Tianlei' Blog   	      # check out docs for more detail
+description: "Cool Blog"              # ...
 
 # SNS settings      
-github_username: huxpro     # modify this account to yours
-weibo_username: huxpro      # the footer woule be auto-updated.
+github_username: niantianlei          # modify this account to yours
+weibo_username: niantianlei           # the footer woule be auto-updated.
 
 # Build settings
-# paginate: 10              # nums of posts in one page
+# paginate: 10                        # nums of posts in one page
 ```
 
 There are more options you can check out in the [Jekyll - Official Site](http://jekyllrb.com/), or you can directly dive into code to find more.
@@ -144,11 +89,11 @@ The **front-matter** of a post looks like that:
 ```
 ---
 layout:     post
-title:      "Hello 2015"
+title:      "Hello 2016"
 subtitle:   "Hello World, Hello Blog"
-date:       2015-01-29 12:00:00
-author:     "Hux"
-header-img: "img/post-bg-2015.jpg"
+date:       2016-12-5 12:00:00
+author:     "Nian"
+header-img: "img/post-bg-2016.jpg"
 tags:
     - Life
 ---
@@ -157,15 +102,14 @@ tags:
 
 #### SideBar
 
-![](http://huangxuan.me/img/blog-sidebar.jpg)
 
-Seeing more information may be necessary for you to display, from V1.1, a clean, gorgeous **SideBar** is added for you, which provide more area for displaying possible modules. You can enable *(it is default enable)* this feature by simply config:
+Seeing more information may be necessary for you to display, a clean, gorgeous **SideBar** is added for you, which provide more area for displaying possible modules. You can enable *(it is default enable)* this feature by simply config:
 
 ```
 # Sidebar settings
 sidebar: true
 sidebar-about-description: "your description here"
-sidebar-avatar: /img/avatar-hux.jpg     # use absolute URL.
+sidebar-avatar: /img/at.jpg     # use absolute URL.
 ```
 
 We default support *[Featured Tags](#featured-tags)*, *[Mini About Me](#mini-about-me)* and *[Friends](#friends)* these three modules and you can add your own. The sidebar is naturally responsive and would be push to bottom in a small screen size (`<= 992px`, according to [Bootstarp Grid System](http://getbootstrap.com/css/#grid))  
@@ -217,7 +161,6 @@ friends: [
 
 #### Keynote Layout
 
-![](http://huangxuan.me/img/blog-keynote.jpg)
 
 There is a increasing tendency to use Open Web technology to create keynotes, presentations, like Reveal.js, Impress.js, Slides, Prezi etc. I consider a modern blog should have abilities to post these HTML based presentation easily also abilities to play it directly.
 
@@ -226,7 +169,7 @@ Under the hood, a `iframe` is used to include webpage from outer source, so the 
 ```
 ---
 layout:     keynote
-iframe:     "http://huangxuan.me/js-module-7day/"
+iframe:     ""
 ---
 ```
 
@@ -242,7 +185,7 @@ First, you need to sign up and get your own account. **Repeat, DO NOT use mine!*
 Second, from V1.5, you can easily complete your comment configuration by just adding your **short name** into `_config.yml`:
 
 ```
-duoshuo_username: _your_duoshuo_short_name_
+duoshuo_username: niantianlei  
 # OR
 disqus_username: _your_disqus_short_name_
 ```
@@ -255,65 +198,17 @@ Furthermore, Duoshuo support Sharing. if you only wanna use Duoshuo comment with
 
 #### Analytics
 
-From V1.5, we support Google Analytics and Baidu Tongji officially with a deathly simple config:
-
-```
 # Baidu Analytics
-ba_track_id: 4cc1f2d8f3067386cc5cdb626a202900
-
-# Google Analytics
-ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
-ga_domain: huangxuan.me
-```
-
-Just checkout the code offered by Google/Baidu, and copy paste here, all the rest is already done for you.
-
-(Google might ask for meta tag "google-site-verification")
+ba_track_id: 06960db8bccee304d53fdb570602d0e4
 
 
-#### Customization
-
-If you wanna do more customization and change code yourself, a [Grunt](gruntjs.com) environment is also included. (Thanks to Clean Blog.)
-
-There are a number of tasks it performs like minification of the JavaScript, compiling of the LESS files, adding banners to keep the Apache 2.0 license intact, and watching for changes. Run the grunt default task by entering `grunt ` into your command line which will build the files. You can use `grunt watch` if you are working on the JavaScript or the LESS.
-
-**Try to understand code in `_include/` and `_layouts/`, then you can modify Jekyll [Liquid](https://github.com/Shopify/liquid/wiki) template directly to do more creative customization.**
+Just checkout the code offered by Baidu, and copy paste here, all the rest is already done for you.
 
 
-#### Header Image
 
-Change header images of any pages or any posts is pretty easy as mentioned above. But, thanks to [issue #6 (in Chinese)](https://github.com/Huxpro/huxpro.github.io/issues/6) asked, **how to make it looks great?**
-
-**Well...it is actually a design issue**, not a coding stuff. It is better that you have basic design knowledge, but not is ok, let me told you how to make it well-designed:
-
-Seeing the title text above image is **white**, the image should be **dark** to emphasize the contract. so we can easily add a **black overlay with fews of opacity**, which is depends on the brightness of the original images you used. you can process it in Photoshop, Sketch etc.
-
-In technical views, it can be done with CSS. However, the opacity of the black overlay is really hard to assigned, **every image has different brightness so the  degree it should be adjusted is different so it is impossible to hard code it.**
-
-
-#### SEO Title
-
-Before V1.4, site setting `title` is not only used for displayed in Home Page and Navbar, but also used to generate the `<title>` in HTML.
-It's possible that you want the two things different. For me, my site-title is **“Hux Blog”** but I want the title shows in search engine is **“黄玄的博客 | Hux Blog”** which is multi-language.
-
-So, the SEO Title is introduced to solve this problem, you can set `SEOTitle` different from `title`, and it would be only used to generate HTML `<title>` and setting DuoShuo Sharing.
-
-#### Page Build Warning
-
-There are many possible reasons to cause a "Page Build Warning" email or similar error.
-
-One of these is that github changes its build environment.
-
-> You are attempting to use the 'pygments' highlighter, which is currently unsupported on GitHub Pages. Your site will use 'rouge' for highlighting instead. To suppress this warning, change the 'highlighter' value to 'rouge' in your '_config.yml'.
-
-So, just edit `_config.yml`, find `highlighter: pygments`, change it to `highlighter: rouge` and the warning will be gone.
-
-For other circumstances, check out existing issues or create a new one!
 
 ## License
 
-Apache License 2.0.
-Copyright (c) 2015-2016 Huxpro
 
-Hux Blog is derived from [Clean Blog Jekyll Theme (MIT License)](https://github.com/BlackrockDigital/startbootstrap-clean-blog-jekyll/)
-Copyright (c) 2013-2016 Blackrock Digital LLC.
+My Blog is derived from [Clean Blog Jekyll Theme (MIT License)](https://github.com/BlackrockDigital/startbootstrap-clean-blog-jekyll/)
+

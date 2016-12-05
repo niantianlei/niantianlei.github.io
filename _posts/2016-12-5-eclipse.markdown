@@ -1,11 +1,12 @@
 ---
 layout:     post
 title:      "eclipse常用指令"
-subtitle:   " \"Hello World, I'm Nian Tianlei\""
+subtitle:   " \"commonly used commands\""
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
     - java
+    - windows
 ---
 
 
