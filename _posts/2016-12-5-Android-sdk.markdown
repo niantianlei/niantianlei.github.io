@@ -10,7 +10,7 @@ tags:
     - java
 ---
 
-    
+> 下滑这里查看更多内容
 
 解决*sdk manager*链接google失败或者下载速度太慢的问题。    
 首先打开sdk manager.exe然后依次点击tools->options，    
@@ -30,4 +30,3 @@ Please momentarily deactivate your anti-virus software or close any running,prog
 然后将里面的文件复制覆盖到sdk根目录的tools文件夹中的文件。  
 重新打开*sdk manager.exe*，即可完美运行。  
 
-<p id = "build"></p>
