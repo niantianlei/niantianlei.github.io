@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Thinking in Java 4th学习笔记"
+title:  "Thinking in Java第4版学习笔记"
 subtitle:  " \"the notes of Thinking in Java(4th)\""
 date:   2016-12-7 10:40:18 +0800
 tags:
