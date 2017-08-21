@@ -7,7 +7,7 @@ header-img: "img/post-bg-2016.jpg"
 tags:
     - Android
     - windows
-    - java
+    - Java
 ---
 
 > 下滑这里查看更多内容

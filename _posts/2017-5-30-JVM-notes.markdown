@@ -9,6 +9,8 @@ tags:
     - Java
 author: Nian Tianlei
 header-img: "img/post-bg-2016.jpg"
+header-mask: 0.4
+catalog:    true
 ---
 
 > This document is not completed and will be updated in the future.  

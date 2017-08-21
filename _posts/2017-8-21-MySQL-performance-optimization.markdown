@@ -7,6 +7,8 @@ tags:
     - MySQL
 author: Nian Tianlei
 header-img: "img/post-bg-2016.jpg"
+header-mask: 0.4
+catalog:    true
 ---
 
 > 近期看了《高性能MySQL》这本书，写点关于性能提升的东西  

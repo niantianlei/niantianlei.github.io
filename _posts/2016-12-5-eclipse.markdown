@@ -5,7 +5,7 @@ subtitle:   " \"commonly used commands\""
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
-    - java
+    - Java
     - windows
 ---
 
