@@ -63,7 +63,7 @@ B-Tree索引能够加快访问数据的速度是因为存储引擎不再需要�
 MyISAM表支持空间索引，可以用作地理数据存储，这类索引无须前缀查询。
 
 **4.全文索引**  
-查找的是文本中的关键词，而不是直接比较索引中的值。
+查找的是文本中的关键词，而不是直接比较索引中的值。5.6.4之前版本的MySQL只有MyISAM支持全文搜索。
 
 <p style="font-size: 20px; font-weight: bold; color: red">高性能的索引策略</p>
 <span style="color: #0099ff; font-weight: bold; font-size: 17px;">1.使用独立的列</span>    
@@ -102,6 +102,8 @@ MyISAM使用前缀压缩来减少索引的大小，使更多的索引可以放�
 ## 多使用视图、分区、存储结构等特性
 
 ## 优化服务器设置
+*max_length_for_sort_data*和*sort_buffer_size*  
+这两个参数尽量加大，以优化排序
 *tmp_table_size*和*max_heap_table_size*  
 控制使用Memory引擎的内存临时表能使用多大的内存。应把这两个变量设为同样的值，且不能太大，因为要把临时表放在内存里。  
 *max_connections*  
@@ -110,4 +112,13 @@ MyISAM使用前缀压缩来减少索引的大小，使更多的索引可以放�
 应设置足够大，避免总是需要重新打开和重新解析表的定义。  
 *max_allowed_packet*  
 应该设置足够大，以适应比较大的SQL查询，对性能没有太大影响，主要是避免出现packet错误。  
+*max_connections*  
+指每个数据库用户的最大连接，针对某一个账号的所有客户端并行连接到MYSQL服务的最大并行连接数。默认为0表示不限制，可改为500。  
+*thread_concurrency*  
+应设为cpu核心数的两倍。  
+*thread_cache_size*  
+服务器线程缓存，表示可以重新利用保存在缓存中线程的数量。应稍微大些。
+*key_buffer_size*  
+用于索引快的缓冲区大小。对MyISAM影响较大。  
 对于InnoDB，最重要的是*innodb_buffer_pool_size*和*innodb_log_file_size*两个参数。
+
