@@ -5,6 +5,7 @@ subtitle:  " \"optimize the performance of MySQL\""
 date:   2017-8-21 11:28:18 +0800
 tags:
     - MySQL
+    - 数据库
 author: Nian Tianlei
 header-img: "img/post-bg-2016.jpg"
 header-mask: 0.4

@@ -8,7 +8,7 @@ tags:
     - 虚拟机
     - Java
 author: Nian Tianlei
-header-img: "img/post-bg-2016.jpg"
+header-img: "img/post-bg-rwd.jpg"
 header-mask: 0.4
 catalog:    true
 ---
