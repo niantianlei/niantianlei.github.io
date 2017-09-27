@@ -388,7 +388,7 @@ synchronized可修饰方法和代码块，不能修饰成员变量、构造器�
 
 wait()当前线程等待  
 notify()唤醒在等待的单个线程  
-notify()唤醒所有线程  
+notifyAll()唤醒所有线程  
 
 #### deadlock
 
