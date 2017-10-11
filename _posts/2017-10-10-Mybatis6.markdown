@@ -163,6 +163,7 @@ Mybatis二级缓存是按namespace分，每一个namespace的mapper都有一个�
 二级缓存以namespace为单位，insert,update,delete操作会清空所在namespace下的全部缓存，使用Mybatis generator生成的代码，各个表独立，每个表都有自己的namespace。  
 
 #### 逆向工程
+重新创建一个项目  
 首先导入jar包`mybatis-generator-core-1.3.5.jar`  采用逆向工程方式，根据数据库中的表，通过Mybatis Generator生成pojo, mapper和xml。  
 增加配置文件generatorConfig.xml  
 ```
@@ -171,25 +172,26 @@ Mybatis二级缓存是按namespace分，每一个namespace的mapper都有一个�
   PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
   "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
 <generatorConfiguration>
-    <!--数据库驱动-->
-    <!--
-        如果IDE(eclipse或者idea) 项目里导入了jar包，那么就不需要配置了jar包的绝对路径了
-         <classPathEntry    location="e:/project/mybatis/lib/mysql-connector-java-5.0.8-bin.jar"/> 
-    -->
+    
     <context id="DB2Tables"    targetRuntime="MyBatis3">
         <commentGenerator>
             <property name="suppressDate" value="true"/>
-            <property name="suppressAllComments" value="false"/>
+            <!-- 去除注释 -->
+            <property name="suppressAllComments" value="true"/>
         </commentGenerator>
         <!--数据库链接地址账号密码-->
         <jdbcConnection driverClass="com.mysql.jdbc.Driver" connectionURL="jdbc:mysql://localhost/how2java" userId="root" password="admin">
         </jdbcConnection>
+        <!-- 默认false，把JDBC DECIMAL 和 NUMERIC 类型解析为 Integer，为 true时把JDBC DECIMAL 和 
+            NUMERIC 类型解析为java.math.BigDecimal -->
         <javaTypeResolver>
             <property name="forceBigDecimals" value="false"/>
         </javaTypeResolver>
         <!--生成Model类存放位置-->
         <javaModelGenerator targetPackage="com.how2java.pojo" targetProject="src">
+            <!-- enableSubPackages:是否让schema作为包的后缀 -->
             <property name="enableSubPackages" value="true"/>
+            <!-- 从数据库返回的值被清理前后的空格 -->
             <property name="trimStrings" value="true"/>
         </javaModelGenerator>
         <!--生成映射文件存放位置-->
@@ -242,4 +244,22 @@ public class testGenerator {
 }
 ```
 运行之后refresh即可观察到自动创建的pojo, mapper和xml文件。  
+测试查询功能：  
+测试代码  
+```
+String resource = "mybatis-config.xml";
+InputStream inputStream = Resources.getResourceAsStream(resource);
+SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+SqlSession session=sqlSessionFactory.openSession();
 
+CategoryExample example = new CategoryExample();
+example.createCriteria().andNameLike("%9%");
+CategoryMapper mapper = session.getMapper(CategoryMapper.class);
+List<Category> cs= mapper.selectByExample(example);
+
+for (Category c : cs) {
+    System.out.println(c.getName());
+}
+```
+结果  
+![f]({{ "/img/post/Mybatis/66.png" | prepend: site.baseurl }} )  
