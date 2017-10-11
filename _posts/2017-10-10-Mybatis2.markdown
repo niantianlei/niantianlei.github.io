@@ -1,0 +1,159 @@
+---
+layout:     post
+title:      "Mybatis学习2-实现增删改查"
+subtitle:   " \"Mybatis\""
+date:   2017-10-10 12:02:18 +0800
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+tags:
+    - Java web开发
+    - Mybatis
+---
+
+
+在上一步的基础上进行  
+添加增删改查sql语句，修改配置文件`Category.xml`：  
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	 <!-- namespace 命名空间，作用就是对sql进行分类化管理,理解为sql隔离
+	 注意：使用mapper代理方法开发，namespace有特殊重要的作用
+	 -->
+    <mapper namespace="com.how2java.pojo">
+    <!-- 在映射文件中配置很多sql语句 -->
+    <!--需求:通过id查询用户表的记录 -->
+    	<!-- 通过select执行数据库查询
+     	id:标识映射文件中的sql，称为statement的id
+    	 将sql语句封装到mappedStatement对象中，所以将id称为statement的id -->
+    	<!-- resultType：指定sql输出结果的映射的java对象类型，select指定
+    	resultType表示将单条记录映射成java对象 -->
+        <select id="listCategory" resultType="Category">
+            select * from   category_      
+        </select>
+        
+        <insert id="addCategory" parameterType="Category" >
+            insert into category_ ( name ) values (#{name})    
+        </insert>
+         
+        <delete id="deleteCategory" parameterType="Category" >
+            delete from category_ where id= #{id}   
+        </delete>
+         
+        <select id="getCategory" parameterType="_int" resultType="Category">
+            select * from   category_  where id= #{id}    
+        </select>
+ 
+        <update id="updateCategory" parameterType="Category" >
+            update category_ set name=#{name} where id=#{id}    
+        </update>
+    </mapper>
+```
+其中`parameterType`是输入参数类型
+#### 增
+修改test.java类  
+通过session.insert调用addCategory对应的SQL语句   
+```
+Category c = new Category();
+c.setName("新增加的Category");
+session.insert("addCategory",c);
+```
+对应到Category.xml中的sql语句  
+```
+<insert id="addCategory" parameterType="Category" >
+    insert into category_ ( name ) values (#{name})    
+</insert>
+```
+其中#{}会自动获取对象的`name`属性值。  
+结果如下：  
+![a]({{ "/img/post/Mybatis/2.png" | prepend: site.baseurl }} )  
+#### 删
+仍然是获得SqlSession会话之后，根据id删除  
+```
+Category c = new Category();
+c.setId(100);
+session.delete("deleteCategory",c);
+//事务提交
+session.commit();
+//会话关闭
+session.close();
+```
+得到结果，可以看到id为100的category已经被删除    
+![b]({{ "/img/post/Mybatis/3.png" | prepend: site.baseurl }} )   
+#### 改
+仍然是根据id，首先得到一个Category类对象实例，改变实例的除id外的属性，提交事务。  
+```
+Category c= session.selectOne("getCategory",105);
+c.setName("修改了的Category名");
+session.update("updateCategory",c);
+```
+结果  
+![c]({{ "/img/post/Mybatis/4.png" | prepend: site.baseurl }} )  
+#### 查
+根据id查询所需信息  
+```
+Category c= session.selectOne("getCategory",105);
+System.out.println(c.getName());
+```
+结果  
+![d]({{ "/img/post/Mybatis/5.png" | prepend: site.baseurl }} )  
+
+
+<br><br>
+以上结果（除了查）均由`List<Category> cs = session.selectList("listCategory");`执行  
+```
+<select id="listCategory" resultType="Category">
+    select * from   category_      
+</select>
+```
+全部查询，然后经  
+```
+List<Category> cs = session.selectList("listCategory");
+for (Category c : cs) {
+    System.out.println(c.getName());
+}
+```
+将结果输出到console。
+#### 模糊查询
+在`Category.xml`中添加  
+```
+<!-- 模糊查询 -->
+<select id="listCategoryByName"  parameterType="string" resultType="Category">
+    select * from   category_  where name like concat('%',#{1},'%')
+</select> 
+```
+测试代码： 
+``` 
+List<Category> cs = session.selectList("listCategoryByName","名");
+for (Category c : cs) {
+    System.out.println(c.getName());
+}
+```
+结果：  
+![e]({{ "/img/post/Mybatis/6.png" | prepend: site.baseurl }} )  
+#### 多条件查询
+在`Category.xml`中添加  
+```
+<!-- 条件查询 -->
+<select id="listCategoryByIdAndName" resultType="Category">
+    select * from   category_  where id> #{id}  and name like concat('%',#{name},'%')
+</select>
+```
+测试代码： 
+``` 
+List<Category> cs = session.selectList("listCategoryByName","名");
+for (Category c : cs) {
+    System.out.println(c.getName());
+}
+```
+结果：  
+![f]({{ "/img/post/Mybatis/7.png" | prepend: site.baseurl }} )  
+
+
+
+<br><br>
+`selectOne`表示查询一条记录进行映射，使用`selectList`也可以使用，只不过只有一个对象
+`selectList`表示查询出一个列表(参数记录)进行映射，不能够使用`selectOne`查，不然会报错。  
+<br>
+**总结：**与hibernate相比，Mybatis需要自己编写sql语句，灵活度高，优化空间大，适合各种需求；hibernate自动生成sql语句，灵活度较低。

@@ -1,0 +1,245 @@
+---
+layout:     post
+title:      "Mybatis学习6-其他"
+subtitle:   " \"Mybatis\""
+date:   2017-10-10 18:41:18 +0800
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+tags:
+    - Java web开发
+    - Mybatis
+---
+
+
+
+
+#### 延迟加载
+
+先从单表查询、需要时再从关联表去关联查询，大大提高数据库性能，因为查询单表要比关联查询多张表速度要快。  
+mybatis-config.xml配置文件中加入  
+```
+<settings>  
+     <!-- 打开延迟加载的开关 -->  
+     <setting name="lazyLoadingEnabled" value="true" />  
+     <!-- 将积极加载改为消息加载即按需加载 -->  
+     <setting name="aggressiveLazyLoading" value="false"/>  
+</settings> 
+```
+根据之前的一对多查询，做测试  
+只查询分类而不查询产品  
+注释掉以下部分代码：  
+```
+/*List<Product> ps = c.getProducts();
+for (Product p : ps) {
+    System.out.println("\t"+p.getName());
+}*/
+```
+结果  
+![a]({{ "/img/post/Mybatis/61.png" | prepend: site.baseurl }} )  
+根据日志输出，从结果可以看到只查询了category_表的数据，没有查询product_表的数据。  
+
+
+
+#### 分页
+为了实现分页效果，首先应该增加数据  
+```
+List<Category> cs = session.selectList("listCategory");
+for (Category c : cs) {
+    session.delete("deleteCategory", c);
+}
+for (int i = 0; i < 100; i++) {
+    Category c = new Category();
+    c.setName("category name " + i);
+    session.insert("addCategory", c);
+}
+List<Category> cs2 = session.selectList("listCategory");
+for (Category c : cs2) {
+    System.out.println(c.getName());
+}
+
+session.commit();
+session.close();
+```
+然后修改Category.xml文件  
+```
+<select id="listCategory" resultType="Category">
+    select * from   category_ 
+        <if test="start!=null and count!=null">
+            limit #{start},#{count}
+        </if>
+</select>   
+```
+测试代码：
+```
+Map<String,Object> params = new HashMap<>();
+params.put("start", 0);
+params.put("count", 5);
+List<Category>  cs =session.selectList("listCategory", params);
+for (Category c : cs) {
+    System.out.println(c);
+}
+```
+结果：  
+![b]({{ "/img/post/Mybatis/62.png" | prepend: site.baseurl }} )  
+
+
+
+#### PageHelper插件
+添加两个包`pagehelper-5.1.0-beta2.jar`，`jsqlparser-1.0.jar`  
+配置插件  
+在mybatis-config.xml中添加代码：  
+```
+<plugins>
+    <plugin interceptor="com.github.pagehelper.PageInterceptor">
+         
+    </plugin>
+</plugins>
+```
+将之前分页操作的sql语句改回来，即注释掉if标签  
+```
+<!-- <if test="start!=null and count!=null">
+    limit #{start},#{count}
+</if> -->
+```
+测试代码：  
+首先导入PageHelper包`import com.github.pagehelper.PageHelper;`  
+```
+PageHelper.offsetPage(0, 5);
+        
+List<Category> cs = session.selectList("listCategory");
+for (Category c : cs) {
+    System.out.println(c.getName());
+}
+```
+很简单，只需要在查询之前添加一条代码`PageHelper.offsetPage(0, 5);`得到结果和不用插件的分页操作一样。  
+
+
+#### 一级缓存
+Mybatis的一级缓存在session上，只要通过session查过的数据，都会放在session上，下一次再查询相同id的数据，都直接从缓存中取出来，而不用到数据库里去取了。
+测试代码：  
+```
+Category c1 = session.selectOne("getCategory", 120);
+System.out.println(c1);
+Category c2 = session.selectOne("getCategory", 120);
+System.out.println(c2);
+```
+如图所示，在session1中查询两次id=120的Category对象。  
+第一次会去数据库中取数据，但是第二次就不会访问数据库了，而是直接从session中取出来。  
+![c]({{ "/img/post/Mybatis/63.png" | prepend: site.baseurl }} )  
+
+如果从会话工厂SqlSessionFactory另外得到一个会话，在不同的session里查相同id数据，就需要执行sql
+语句查询，证实了一级缓存生命周期为session。  
+测试代码：  
+```
+SqlSession session1 = sqlSessionFactory.openSession();
+ 
+Category c1 = session1.selectOne("getCategory", 120);
+System.out.println(c1);
+session1.commit();
+session1.close();
+ 
+SqlSession session2 = sqlSessionFactory.openSession();
+Category c2 = session2.selectOne("getCategory", 120);
+System.out.println(c2);     
+session2.commit();
+session2.close();
+```
+结果：  
+![d]({{ "/img/post/Mybatis/64.png" | prepend: site.baseurl }} )  
+
+#### 二级缓存
+Mybatis二级缓存是按namespace分，每一个namespace的mapper都有一个二缓存区域，那么就从二级缓存中取数据，而不用到数据库里去取了。  
+二级缓存要在mybatis-config.xml中的settings标签中添加配置，开启  
+```
+<setting name="cacheEnabled" value="true"/>
+```
+在Category.xml中增加 `<cache/>`以启动对Category对象的二级缓存  
+让Category类实现序列化接口  
+测试代码不变  
+![e]({{ "/img/post/Mybatis/65.png" | prepend: site.baseurl }} )  
+
+<br>
+如果缓存中有数据就不用从数据库中获取，大大提高系统性能。  
+二级缓存以namespace为单位，insert,update,delete操作会清空所在namespace下的全部缓存，使用Mybatis generator生成的代码，各个表独立，每个表都有自己的namespace。  
+
+#### 逆向工程
+首先导入jar包`mybatis-generator-core-1.3.5.jar`  采用逆向工程方式，根据数据库中的表，通过Mybatis Generator生成pojo, mapper和xml。  
+增加配置文件generatorConfig.xml  
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+  PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+  "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+<generatorConfiguration>
+    <!--数据库驱动-->
+    <!--
+        如果IDE(eclipse或者idea) 项目里导入了jar包，那么就不需要配置了jar包的绝对路径了
+         <classPathEntry    location="e:/project/mybatis/lib/mysql-connector-java-5.0.8-bin.jar"/> 
+    -->
+    <context id="DB2Tables"    targetRuntime="MyBatis3">
+        <commentGenerator>
+            <property name="suppressDate" value="true"/>
+            <property name="suppressAllComments" value="false"/>
+        </commentGenerator>
+        <!--数据库链接地址账号密码-->
+        <jdbcConnection driverClass="com.mysql.jdbc.Driver" connectionURL="jdbc:mysql://localhost/how2java" userId="root" password="admin">
+        </jdbcConnection>
+        <javaTypeResolver>
+            <property name="forceBigDecimals" value="false"/>
+        </javaTypeResolver>
+        <!--生成Model类存放位置-->
+        <javaModelGenerator targetPackage="com.how2java.pojo" targetProject="src">
+            <property name="enableSubPackages" value="true"/>
+            <property name="trimStrings" value="true"/>
+        </javaModelGenerator>
+        <!--生成映射文件存放位置-->
+        <sqlMapGenerator targetPackage="com.how2java.pojo" targetProject="src">
+            <property name="enableSubPackages" value="true"/>
+        </sqlMapGenerator>
+        <!--生成Dao类存放位置-->
+         
+        <javaClientGenerator type="XMLMAPPER" targetPackage="com.how2java.mapper" targetProject="src">
+            <property name="enableSubPackages" value="true"/>
+        </javaClientGenerator>
+        <!--生成对应表及类名-->
+        <table tableName="category_" domainObjectName="Category" enableCountByExample="false" enableUpdateByExample="false" enableDeleteByExample="false" enableSelectByExample="true" selectByExampleQueryId="false">
+            <property name="my.isgen.usekeys" value="true"/>
+            <generatedKey column="id" sqlStatement="JDBC"/>        
+        </table>
+<!--         <table tableName="product_" domainObjectName="Product" enableCountByExample="false" enableUpdateByExample="false" enableDeleteByExample="false" enableSelectByExample="false" selectByExampleQueryId="false"></table> -->
+    </context>
+</generatorConfiguration>
+```
+创建测试类testGenerator.java：  
+```
+package com.how2java.pojo;
+
+import java.io.File;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+ 
+import org.mybatis.generator.api.MyBatisGenerator;
+import org.mybatis.generator.config.Configuration;
+import org.mybatis.generator.config.xml.ConfigurationParser;
+import org.mybatis.generator.internal.DefaultShellCallback;
+ 
+public class testGenerator {
+ 
+    public static void main(String[] args) throws Exception {
+        List<String> warnings = new ArrayList<String>();
+        boolean overwrite = true;
+        InputStream is= testGenerator.class.getClassLoader().getResource("generatorConfig.xml").openStream();
+        ConfigurationParser cp = new ConfigurationParser(warnings);
+        Configuration config = cp.parseConfiguration(is);
+        is.close();
+        DefaultShellCallback callback = new DefaultShellCallback(overwrite);
+        MyBatisGenerator myBatisGenerator = new MyBatisGenerator(config, callback, warnings);
+        myBatisGenerator.generate(null);
+        System.out.println("生成代码成功，刷新项目，查看文件,然后执行TestMybatis.java");
+         
+    }
+}
+```
+运行之后refresh即可观察到自动创建的pojo, mapper和xml文件。  
+

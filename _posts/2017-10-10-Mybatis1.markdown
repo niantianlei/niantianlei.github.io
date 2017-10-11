@@ -6,7 +6,8 @@ date:   2017-10-10 11:28:18 +0800
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
-    - Java
+    - Java web开发
+    - Mybatis
 ---
 
 #### Mybatis作用

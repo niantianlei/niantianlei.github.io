@@ -1,0 +1,155 @@
+---
+layout:     post
+title:      "Mybatis学习4-动态SQL"
+subtitle:   " \"Mybatis\""
+date:   2017-10-10 15:50:18 +0800
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+tags:
+    - Java web开发
+    - Mybatis
+---
+
+#### if
+提供两个sql语句：  
+```
+<select id="listProduct" resultType="Product">
+    select * from product_          
+</select>
+<select id="listProductByName" resultType="Product">
+    select * from product_  where name like concat('%',#{name},'%')         
+</select>
+```
+如果Product的字段比较多的话，为了应付各个字段的查询，那么就需要写多条sql语句，这样就变得难以维护。
+这个时候，就可以使用Mybatis 动态SQL里的if标签  
+修改之前写的两个sql语句  
+```
+<select id="listProduct" resultType="Product">
+	select * from product_
+	<if test="name!=null">
+		where name like concat('%',#{name},'%')
+	</if>		 	
+</select>
+```
+如果没有传参数name,那么就查询所有，如果有name参数，那么就进行模糊查询。  
+这样只需要定义一条sql语句即可应付多种情况了，在测试的时候，也只需要调用这么一条sql语句listProduct 即可
+测试代码：  
+```
+System.out.println("查询所有的");
+List<Product> ps = session.selectList("listProduct");
+for (Product p : ps) {
+    System.out.println(p);
+}
+ 
+System.out.println("模糊查询");
+Map<String,Object> params = new HashMap<>(); 
+params.put("name","a");
+List<Product> ps2 = session.selectList("listProduct",params);
+for (Product p : ps2) {
+    System.out.println(p);
+} 
+```
+结果：  
+![a]({{ "/img/post/Mybatis/41.png" | prepend: site.baseurl }} )  
+
+
+
+#### where
+应用if标签时，如果是多条件查询，则会产生错误，如  
+```
+<select id="listProduct" resultType="Product">
+	select * from product_
+	<if test="name!=null">
+		where name like concat('%',#{name},'%')
+	</if>		 	
+	<if test="price!=0">
+		and price > #{price}
+	</if>		 	
+</select>
+```
+如果只有price参数，就会执行sql语句`select * from product_ and price > 5`，执行报错。  
+使用where标签：  
+```
+<select id="listProduct" resultType="Product">
+	select * from product_
+	<where>
+		<if test="name!=null">
+			and name like concat('%',#{name},'%')
+		</if>		 	
+		<if test="price!=null and price!=0">
+			and price > #{price}
+		</if>	
+	</where>	 	
+</select>
+```
+`where`标签会进行自动判断
+如果任何条件都不成立，那么就在sql语句里就不会出现where关键字
+如果有任何条件成立，会自动去掉多出来的 and 或者 or。  
+
+
+#### set
+与where标签类似的，在update语句里也会碰到多个字段相关的问题。 在这种情况下，就可以使用set标签：  
+```
+<set>
+ 	<if test="name != null">name=#{name},</if>
+ 	<if test="price != null">price=#{price}</if>
+</set>
+```
+有数据的时候才进行设置  
+
+
+
+#### trim
+trim 用来定制想要的功能，比如where标签就可以用   
+```
+<trim prefix="WHERE" prefixOverrides="AND |OR ">
+  ...
+</trim>
+```
+替换  
+
+
+#### choose
+Mybatis里面没有else标签，当需要使用if else时，可以使用when otherwise标签，作用相同。  
+```
+<select id="listProduct" resultType="Product">
+	  SELECT * FROM product_ 
+	  <where>
+	  	<choose>
+		  <when test="name != null">
+		    and name like concat('%',#{name},'%')
+		  </when>			  
+		  <when test="price !=null and price != 0">
+		    and price > #{price}
+		  </when>			  		
+	  	  <otherwise>
+	  	  	and id >1
+	  	  </otherwise>
+	  	</choose>
+	  </where>
+</select>
+```
+  
+
+#### foreach
+```
+<select id="listProduct" resultType="Product">
+      SELECT * FROM product_ 
+        WHERE ID in
+            <foreach item="item" index="index" collection="list"
+                open="(" separator="," close=")">
+                #{item}
+            </foreach>
+</select>
+```
+使用 foreach遍历传入ids  
+collection：指定输入对象中集合属性  
+item：每个遍历生成对象  
+open：开始遍历时拼接的串  
+close：结束遍历时拼接的串  
+separator：遍历的两个对象中需要拼接的串  
+#{item}：具体的value值
+
+
+
+

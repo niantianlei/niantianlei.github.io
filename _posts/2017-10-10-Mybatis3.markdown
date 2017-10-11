@@ -1,0 +1,235 @@
+---
+layout:     post
+title:      "Mybatis学习3-关联查询"
+subtitle:   " \"Mybatis\""
+date:   2017-10-10 14:02:18 +0800
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+tags:
+    - Java web开发
+    - Mybatis
+---
+
+#### 一对多
+一个分类多个产品  
+增加产品表  
+```
+use how2java;
+create table product_(
+id int NOT NULL AUTO_INCREMENT,
+name varchar(30)  DEFAULT NULL,
+price float  DEFAULT 0,
+cid int ,
+PRIMARY KEY (id)
+)AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+```
+准备数据
+```
+use how2java;
+delete from category_;
+INSERT INTO category_ VALUES (1,'category1');
+INSERT INTO category_ VALUES (2,'category2');
+delete from product_;
+INSERT INTO product_ VALUES (1,'product a', 88.88, 1);
+INSERT INTO product_ VALUES (2,'product b', 88.88, 1);
+INSERT INTO product_ VALUES (3,'product c', 88.88, 1);
+INSERT INTO product_ VALUES (4,'product x', 88.88, 2);
+INSERT INTO product_ VALUES (5,'product y', 88.88, 2);
+INSERT INTO product_ VALUES (6,'product z', 88.88, 2);
+```
+新建Product实体类  
+```
+package com.how2java.pojo;
+ 
+public class Product {
+    private int id;
+    private String name;
+    private float price;
+    public int getId() {
+        return id;
+    }
+    public void setId(int id) {
+        this.id = id;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public float getPrice() {
+        return price;
+    }
+    public void setPrice(float price) {
+        this.price = price;
+    }
+    @Override
+    public String toString() {
+        return "Product [id=" + id + ", name=" + name + ", price=" + price + "]";
+    }
+}
+```
+修改Category实体类，提供products的集合  
+```
+package com.how2java.pojo;
+
+import java.util.List;
+
+// 这里没什么说的   数据库的表里有什么这里就有什么
+public class Category {
+    private int id;
+    private String name;
+    List<Product> products;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public List<Product> getProducts() {
+        return products;
+    }
+
+    public void setProducts(List<Product> products) {
+        this.products = products;
+    }
+
+    @Override
+    public String toString() {
+        return "Category [id=" + id + ", name=" + name + "]";
+    }
+
+}
+```
+修改Category.xml  
+```
+<resultMap type="Category" id="categoryBean">
+    <id column="cid" property="id" />
+    <result column="cname" property="name" />
+
+    <!-- 一对多的关系 -->
+    <!-- property: 指的是集合属性的值, ofType：指的是集合中元素的类型 -->
+    <collection property="products" ofType="Product">
+        <id column="pid" property="id" />
+        <result column="pname" property="name" />
+        <result column="price" property="price" />
+    </collection>
+</resultMap>
+
+<!-- 关联查询分类和产品表 -->
+<select id="listCategory" resultMap="categoryBean">
+    select c.*, p.*, c.id 'cid', p.id 'pid', c.name 'cname', p.name 'pname' from category_ c left join product_ p on c.id = p.cid
+</select> 
+```
+测试代码：  
+```
+//mybatis配置文件
+String resource = "mybatis-config.xml";
+// 得到配置文件流
+InputStream inputStream = Resources.getResourceAsStream(resource);
+//创建会话工厂，传入mybatis配置文件的信息
+SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+// 通过工厂得到SqlSession
+SqlSession session=sqlSessionFactory.openSession();
+// 通过SqlSession操作数据库
+        List<Category> cs = session.selectList("listCategory");
+for (Category c : cs) {
+    System.out.println(c);
+    List<Product> ps = c.getProducts();
+    for (Product p : ps) {
+        System.out.println("\t"+p);
+    }
+}
+
+session.commit();
+session.close();
+```
+结果：  
+![a]({{ "/img/post/Mybatis/31.png" | prepend: site.baseurl }} )  
+
+
+
+
+
+#### 多对一
+为Product实体类增加分类属性category，并提供getter和setter  
+```
+private Category category;
+
+public Category getCategory() {
+    return category;
+}
+public void setCategory(Category category) {
+    this.category = category;
+}
+```
+一对多时，无需提供Product.xml。多对一时需要，增加Product.xml  
+将sql语句id设为listProduct，通过resultMap进行字段和属性的对应。
+使用association 进行多对一关系关联，指定表字段名称与对象属性名称的一一对应关系
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    <mapper namespace="com.how2java.pojo">
+        <resultMap type="Product" id="productBean">
+            <!-- id表示查询结果集中唯一标识
+            column：查询出来的列名
+            property：type指定的pojo类型中的属性名
+            最终resultMap对column和property作一个映射关系 （对应关系）
+            -->
+            <id column="pid" property="id" />
+            <!--
+            result：对普通名映射定义
+            column：查询出来的列名
+            property：type指定的pojo类型中的属性名
+            最终resultMap对column和property作一个映射关系 （对应关系）
+             -->
+            <result column="pname" property="name" />
+            <result column="price" property="price" />
+     
+            <!-- 多对一的关系 -->
+            <!-- property: 指的是属性名称, javaType：指的是属性的类型 -->
+            <association property="category" javaType="Category">
+                <id column="cid" property="id"/>
+                <result column="cname" property="name"/>
+            </association>
+        </resultMap>
+     
+        <!-- 根据id查询Person, 关联将Orders查询出来 -->
+        <select id="listProduct" resultMap="productBean">
+            select c.*, p.*, c.id 'cid', p.id 'pid', c.name 'cname', p.name 'pname' from category_ c left join product_ p on c.id = p.cid
+        </select>    
+    </mapper>
+```
+在mybatis-config.xml中增加映射文件Product.xml  
+```
+<mappers>
+    <mapper resource="com/how2java/pojo/Category.xml"/>
+    <mapper resource="com/how2java/pojo/Product.xml"/>
+</mappers>
+```
+第三行为新增。  
+测试代码：  
+```
+List<Product> ps = session.selectList("listProduct");
+for (Product p : ps) {
+    System.out.println(p+" 对应的分类是 \t "+ p.getCategory());
+}
+```
+结果：  
+![b]({{ "/img/post/Mybatis/32.png" | prepend: site.baseurl }} )   
+
+
+

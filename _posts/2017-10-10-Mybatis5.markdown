@@ -1,0 +1,118 @@
+---
+layout:     post
+title:      "Mybatis学习5-注解"
+subtitle:   " \"Mybatis\""
+date:   2017-10-10 16:35:15 +0800
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+tags:
+    - Java web开发
+    - Mybatis
+---
+
+
+
+采用注解方式实现CRUD  
+新增接口CategoryMapper，给接口中的方法增加注解，更加简单  
+```
+package com.how2java.mapper;
+  
+import java.util.List;
+ 
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+ 
+import com.how2java.pojo.Category;
+  
+public interface CategoryMapper {
+  
+    @Insert(" insert into category_ ( name ) values (#{name}) ")  
+    public int add(Category category);  
+        
+    @Delete(" delete from category_ where id= #{id} ")  
+    public void delete(int id);  
+        
+    @Select("select * from category_ where id= #{id} ")  
+    public Category get(int id);  
+      
+    @Update("update category_ set name=#{name} where id=#{id} ")  
+    public int update(Category category);   
+        
+    @Select(" select * from category_ ")  
+    public List<Category> list();  
+}
+```
+在mybatis-config.xml配置文件的`mappers`标签中，增加对CategoryMapper的映射  
+```
+<mapper class="com.how2java.mapper.CategoryMapper"/>  
+```
+测试类：  
+```
+package com.how2java;
+   
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+ 
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+ 
+import com.how2java.mapper.CategoryMapper;
+import com.how2java.pojo.Category;
+   
+public class TestMybatis {
+   
+    public static void main(String[] args) throws IOException {
+        String resource = "mybatis-config.xml";
+        InputStream inputStream = Resources.getResourceAsStream(resource);
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+        SqlSession session = sqlSessionFactory.openSession();
+        CategoryMapper mapper = session.getMapper(CategoryMapper.class);
+  
+        add(mapper);
+//        delete(mapper);
+//        get(mapper);
+//        update(mapper);
+        listAll(mapper);
+              
+        session.commit();
+        session.close();
+   
+    }
+  
+    private static void update(CategoryMapper mapper) {
+        Category c= mapper.get(8);
+        c.setName("修改了的Category名稱");
+        mapper.update(c);
+        listAll(mapper);
+    }
+  
+    private static void get(CategoryMapper mapper) {
+        Category c= mapper.get(8);
+        System.out.println(c.getName());
+    }
+  
+    private static void delete(CategoryMapper mapper) {
+        mapper.delete(2);
+        listAll(mapper);
+    }
+  
+    private static void add(CategoryMapper mapper) {
+        Category c = new Category();
+        c.setName("新增加的Category");
+        mapper.add(c);
+        listAll(mapper);
+    }
+   
+    private static void listAll(CategoryMapper mapper) {
+        List<Category> cs = mapper.list();
+        for (Category c : cs) {
+            System.out.println(c.getName());
+        }
+    }
+}
+```
