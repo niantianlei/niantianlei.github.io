@@ -67,6 +67,20 @@ mybatis-config.xml配置文件：可以配置properties属性、别名、mapper�
 
 
 #### 一个简单实现
+首先创建数据库  
+```
+create database how2java
+```
+创建表  
+```
+USE how2java;
+ 
+CREATE TABLE category_ (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  name varchar(32) DEFAULT NULL,
+  PRIMARY KEY (id)
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+```
 创建项目mybatis，导入jar包`mybatis-3.4.2.jar`和`mysql-connector-java-5.0.8-bin.jar`  
 创建实体类  
 ```
