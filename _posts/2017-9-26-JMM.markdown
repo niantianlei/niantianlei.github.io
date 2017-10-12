@@ -2,7 +2,7 @@
 layout:     post
 title:      "Java内存模型"
 subtitle:   " \"JMM\""
-date:   2017-9-26 11:28:18 +0800
+
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
