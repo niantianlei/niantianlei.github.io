@@ -1,0 +1,560 @@
+---
+layout:     post
+title:      "Spring学习整理"
+subtitle:   " \"Spring\""
+date:   2017-10-12 19:50:38 +0800
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+header-mask: 0.4
+catalog:    true
+tags:
+    - Java web开发
+    - Spring
+---
+
+
+### 简介
+Spring是一个非常强大的反转控制框架，有助于分离项目组件之间的依赖关系。  
+IOC 反转控制：是Spring的基础，Inversion Of Control 
+简单说就是创建对象由传统的new一个实例，变成了交由Spring创建对象。   
+DI 依赖注入 Dependency Inject：简单地说就是拿到的对象的属性，已经被注入好相关值了，直接使用即可。   
+
+
+<br>
+获取对象属性值的实例：  
+首先导入包  
+准备pojo  
+```
+package com.how2java.pojo;
+ 
+public class Category {
+ 
+    public int getId() {
+        return id;
+    }
+    public void setId(int id) {
+        this.id = id;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    private int id;
+    private String name;
+}
+```
+在src目录下新建applicationContext.xml  
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="
+   http://www.springframework.org/schema/beans 
+   http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+   http://www.springframework.org/schema/aop 
+   http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+   http://www.springframework.org/schema/tx 
+   http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+   http://www.springframework.org/schema/context      
+   http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+  
+    <bean name="c" class="com.how2java.pojo.Category">
+        <property name="name" value="category 1" />
+    </bean>
+  
+</beans>
+```
+通过c获取Category对象，该对象获取的时候，即被注入了字符串"category 1"到name属性中  
+
+测试代码  
+```
+package com.how2java.test;
+ 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+ 
+import com.how2java.pojo.Category;
+ 
+public class TestSpring {
+ 
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                new String[] { "applicationContext.xml" });
+ 
+        Category c = (Category) context.getBean("c");
+         
+        System.out.println(c.getName());
+    }
+}
+```
+通过spring获取Category对象，以及该对象被注入的name属性。
+如图所示，可以打印出通过Spring拿到的Category对象的name属性  
+![a]({{ "/img/post/Spring/1.png" | prepend: site.baseurl }} )  
+
+IOC方式获取对象的生命周期由Spring管理，控制权交给了Spring。  
+
+### 注入对象
+创建Product类，Product中有Category对象，并且有对应的getter和setter  
+对Product对象，注入一个Category对象  
+```
+package com.how2java.pojo;
+ 
+public class Product {
+ 
+    private int id;
+    private String name;
+    private Category category;
+    public int getId() {
+        return id;
+    }
+    public void setId(int id) {
+        this.id = id;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public Category getCategory() {
+        return category;
+    }
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+}
+```
+修改applicationContext.xml，在创建Product时注入一个Category对象  
+```
+<bean name="c" class="com.how2java.pojo.Category">
+    <property name="name" value="category 1" />
+</bean>
+	<bean name="p" class="com.how2java.pojo.Product">
+    <property name="name" value="product1" />
+    <property name="category" ref="c" />
+</bean>
+```
+测试代码  
+```
+package com.how2java.test;
+ 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+ 
+import com.how2java.pojo.Product;
+ 
+public class TestSpring {
+ 
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                new String[] { "applicationContext.xml" });
+ 
+        Product p = (Product) context.getBean("p");
+        
+        System.out.println(p.getName());
+        System.out.println(p.getCategory().getName());
+    }
+}
+```
+
+### 注解方式
+修改applicationContext.xml
+```
+<!-- 注解方式进行配置,因此注释掉23行代码 -->
+	<context:annotation-config/>
+<bean name="c" class="com.how2java.pojo.Category">
+    <property name="name" value="category 1" />
+</bean>
+	<bean name="p" class="com.how2java.pojo.Product">
+    <property name="name" value="product1" />
+    <!-- <property name="category" ref="c" /> -->
+</bean>
+```
+在Product.java的category属性前面加上@Autowired注解，Spring在启动时，会扫描所有的Bean，当发现其中有@Autowired注解时，就会找到相应类型的Bean，实现注入。  
+```
+@Autowired
+private Category category;
+```
+进行测试，可以得到上一节同样的输出。  
+除了前面的 在属性前加上@Autowired 这种方式外，也可以在setCategory方法前加上@Autowired，这样来达到相同的效果。  
+
+<br>
+此外，也可以使用@Resource注解，效果相同。  
+```
+@Resource(name="c")
+private Category category;
+```
+上述例子均为*注入对象*注解，那么bean对象本身也可以通过注解方式进行。  
+修改applicationContext.xml，去掉所有bean标签配置。新增：  
+```
+<context:component-scan base-package="com.how2java.pojo"/>
+```
+就是去com.how2java.pojo包下面扫描bean。  
+为Product类和Category 类加上@Component注解，即表明此类是bean  
+例如：
+```
+@Component("p")
+public class Product
+```
+和
+```
+@Component("c")
+public class Category
+```
+此外，属性的初始化要放在声明上：  
+`private String name="product 1";`和`private String name="category 1";`  
+测试结果同上。  
+
+
+<br />
+### AOP
+面向切面编程（Aspect Oriented Programming），通过预编译方式和运行期动态代理实现程序功能的统一维护的一种技术。  
+"切面"，简单说就是那些与业务无关，却为业务模块所共同调用的逻辑或责任封装起来，便于减少系统的重复代码，降低模块之间的耦合度，并有利于未来的可操作性和可维护性。  
+例如日志功能，日志代码往往横向散布在所有对象层次中，而与它对应对象的核心功能毫无关系。这类功能定义为**切面**。权限认证等也是。  
+
+Spring对AOP的支持  
+Spring中AOP代理由Spring的IOC容器负责生成、管理，其依赖关系也由IOC容器负责管理。因此，AOP代理可以直接使用容器中的其它bean实例作为目标，这种关系可由IOC容器的依赖注入提供。Spring创建代理的规则为：  
+1、默认使用Java动态代理来创建AOP代理，这样就可以为任何接口实例创建代理了  
+2、当需要代理的类不是代理接口的时候，Spring会切换为使用CGLIB代理，也可强制使用CGLIB
+  
+AOP编程其实是很简单的事情，纵观AOP编程，程序员只需要参与三个部分：  
+1、定义普通业务组件  
+2、定义切入点，一个切入点可能横切多个业务组件  
+3、定义增强处理，增强处理就是在AOP框架为普通业务组件织入的处理动作  
+
+<br />
+一个简单的例子  
+首先创建业务类  
+```
+package com.how2java.service;
+ 
+public class ProductService {
+    public void doSomeService(){
+        System.out.println("doSomeService");
+    }
+}
+```
+准备日志切面，在核心功能前后分别输出日志。  
+```
+package com.how2java.aspect;
+import org.aspectj.lang.ProceedingJoinPoint;
+ 
+public class LoggerAspect { 
+ 
+    public Object log(ProceedingJoinPoint joinPoint) throws Throwable {
+        System.out.println("start log:" + joinPoint.getSignature().getName());
+        Object object = joinPoint.proceed();
+        System.out.println("end log:" + joinPoint.getSignature().getName());
+        return object;
+    }
+}
+```
+配置applicationContext.xml  
+```
+<bean name="s" class="com.how2java.service.ProductService">
+</bean>    
+ 
+<bean id="loggerAspect" class="com.how2java.aspect.LoggerAspect"/>
+ 
+ <!-- aop:config把业务对象与辅助功能编织在一起 -->
+<aop:config>
+<!-- 指定核心业务功能 -->
+    <aop:pointcut id="loggerCutpoint"
+        expression=
+        "execution(* com.how2java.service.ProductService.*(..)) "/>
+    <!-- 指定切面功能 -->  
+    <aop:aspect id="logAspect" ref="loggerAspect">
+        <aop:around pointcut-ref="loggerCutpoint" method="log"/>
+    </aop:aspect>
+</aop:config>
+```
+其中，声明业务对象`<bean name="s" class="com.how2java.service.ProductService">
+</bean>`，  
+声明日志切面`<bean id="loggerAspect" class="com.how2java.aspect.LoggerAspect"/>`  
+`execution(* com.how2java.service.ProductService.*(..)) `表示对满足如下条件的方法调用，进行切面操作：  
+\*返回任意类型  
+com.how2java.service.ProductService.* 包名以 com.how2java.service.ProductService 开头的类的任意方法  
+(..) 参数是任意数量和类型  
+
+测试代码  
+```
+package com.how2java.test;
+ 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+ 
+import com.how2java.service.ProductService;
+ 
+public class TestSpring {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(new String[] { "applicationContext.xml" });
+        ProductService s = (ProductService) context.getBean("s");
+        s.doSomeService();
+    }
+}
+```
+结果  
+![a]({{ "/img/post/Spring/1.png" | prepend: site.baseurl }} )  
+
+<br />
+### 注解方式AOP
+使用@Component("s") 注解ProductService类  
+```
+package com.how2java.service;
+
+import org.springframework.stereotype.Component;
+
+@Component("s")
+public class ProductService {
+     
+    public void doSomeService(){
+        System.out.println("doSomeService");
+    }
+}
+```
+注解配置切面  
+@Aspect 注解表示这是一个切面  
+@Component 表示这是一个bean,由Spring进行管理  
+@Around(value = "execution(* com.how2java.service.ProductService.*(..))") 表示对com.how2java.service.ProductService 这个类中的所有方法进行切面操作  
+```
+package com.how2java.aspect;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.springframework.stereotype.Component;
+ 
+@Aspect
+@Component
+public class LoggerAspect { 
+     
+    @Around(value = "execution(* com.how2java.service.ProductService.*(..))")
+    public Object log(ProceedingJoinPoint joinPoint) throws Throwable {
+        System.out.println("start log:" + joinPoint.getSignature().getName());
+        Object object = joinPoint.proceed();
+        System.out.println("end log:" + joinPoint.getSignature().getName());
+        return object;
+    }
+}
+```
+配置applicationContext.xml  
+去掉原有信息，添加如下3行  
+```
+<context:component-scan base-package="com.how2java.aspect"/>
+<context:component-scan base-package="com.how2java.service"/>
+<aop:aspectj-autoproxy/> 
+```
+扫描包com.how2java.aspect和com.how2java.service，定位业务类和切面类  
+找到被注解了的切面类，进行切面配置  
+输出同上。  
+
+<br />
+### 注解方式测试
+添加包`junit-4.12.jar`和`hamcrest-all-1.3.jar`  
+修改测试类TestSpring  
+```
+package com.how2java.test;
+ 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+ 
+import com.how2java.pojo.Category;
+ 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration("classpath:applicationContext.xml")
+public class TestSpring {
+    @Autowired
+    Category c;
+ 
+    @Test
+    public void test(){
+        System.out.println(c.getName());
+    }
+}
+```
+
+<br />
+### Spring+Mybatis整合
+新建pojo类  
+```
+package com.how2java.pojo;
+ 
+public class Category {
+    private int id;
+    private String name;
+    public int getId() {
+        return id;
+    }
+    public void setId(int id) {
+        this.id = id;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    @Override
+    public String toString() {
+        return "Category [id=" + id + ", name=" + name + "]";
+    }
+     
+}
+```
+Mapper接口  
+```
+package com.how2java.mapper;
+  
+import java.util.List;
+ 
+import com.how2java.pojo.Category;
+  
+public interface CategoryMapper {
+  
+    public int add(Category category);  
+        
+    public void delete(int id);  
+        
+    public Category get(int id);  
+      
+    public int update(Category category);   
+        
+    public List<Category> list();
+     
+    public int count();  
+     
+}
+```
+Category.xml需要和上一个CategoryMapper类放在同一个包下，并且namespace必须写CategoryMapper  
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+    <mapper namespace="com.how2java.mapper.CategoryMapper">
+        <insert id="add" parameterType="Category" >
+            insert into category_ ( name ) values (#{name})    
+        </insert>
+         
+        <delete id="delete" parameterType="Category" >
+            delete from category_ where id= #{id}   
+        </delete>
+         
+        <select id="get" parameterType="_int" resultType="Category">
+            select * from   category_  where id= #{id}    
+        </select>
+ 
+        <update id="update" parameterType="Category" >
+            update category_ set name=#{name} where id=#{id}    
+        </update>
+        <select id="list" resultType="Category">
+            select * from   category_      
+        </select>     
+    </mapper>
+```
+applicationContext.xml文件配置  
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xsi:schemaLocation="
+     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+     http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+     http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+     
+   <context:annotation-config />
+     
+   <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">  
+        <property name="driverClassName">  
+            <value>com.mysql.jdbc.Driver</value>  
+        </property>  
+        <property name="url">  
+            <value>jdbc:mysql://localhost:3306/how2java?characterEncoding=UTF-8</value>  
+     
+        </property>  
+        <property name="username">  
+            <value>root</value>  
+        </property>  
+        <property name="password">  
+            <value>admin</value>  
+        </property>   
+   </bean>
+     
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+    <property name="typeAliasesPackage" value="com.how2java.pojo" />
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath:com/how2java/mapper/*.xml"/>
+    </bean>
+ 
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.how2java.mapper"/>
+    </bean>
+     
+</beans>
+```
+`<context:annotation-config />`  
+注解方式  
+`<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">`  
+配置连接数据库的驱动，URL，账号和密码  
+`<bean id="sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">`  
+扫描XML配置文件  
+`<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">`  
+扫描Mapper类  
+测试代码，仍然用junit单元测试  
+拿到注入的CategoryMapper对象，当调用add方法的时候，会自动去找Category.xml里id="add"的sql语句  
+```
+package com.java.test;
+ 
+import java.util.List;
+ 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+ 
+import com.how2java.mapper.CategoryMapper;
+import com.how2java.pojo.Category;
+ 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration("classpath:applicationContext.xml")
+public class MybatisTest {
+ 
+    @Autowired
+    private CategoryMapper categoryMapper;
+ 
+    @Test
+    public void testAdd() {
+        Category category = new Category();
+        category.setName("new Category");
+        categoryMapper.add(category);
+    }
+ 
+    @Test
+    public void testList() {
+        System.out.println(categoryMapper);
+        List<Category> cs=categoryMapper.list();
+        for (Category c : cs) {
+            System.out.println(c.getName());
+        }
+    }
+ 
+}
+```
+结果  
+![c]({{ "/img/post/Spring/3.png" | prepend: site.baseurl }} )  
+
