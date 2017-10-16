@@ -1,0 +1,894 @@
+---
+layout:     post
+title:      "SSM整合学习"
+subtitle:   " \"SSM\""
+date:   2017-10-13 13:23:00 +0800
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+header-mask: 0.4
+catalog:    true
+tags:
+    - Java web开发
+---
+
+
+
+
+## SSM整合
+仍然基于之前建立的数据库how2java，首先新建一个动态web项目ssm_zhenghe，然后导入包  
+准备pojo  
+```
+package com.how2java.pojo;
+ 
+public class Category {
+    private int id;
+    private String name;
+    public int getId() {
+        return id;
+    }
+    public void setId(int id) {
+        this.id = id;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    @Override
+    public String toString() {
+        return "Category [id=" + id + ", name=" + name + "]";
+    }
+     
+}
+```
+Mapper接口  
+```
+package com.how2java.mapper;
+  
+import java.util.List;
+ 
+import com.how2java.pojo.Category;
+  
+public interface CategoryMapper {
+  
+    public void add(Category category);  
+        
+    public void delete(int id);  
+        
+    public Category get(int id);  
+      
+    public void update(Category category);   
+        
+    public List<Category> list();
+     
+    public int count();  
+     
+}
+```
+Category.xml配置  
+Category.xml需要和CategoryMapper放在同一个包里面，且namespace写完整类名  
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+    <mapper namespace="com.how2java.mapper.CategoryMapper">
+        <insert id="add" parameterType="Category" >
+            insert into category_ ( name ) values (#{name})    
+        </insert>
+         
+        <delete id="delete" parameterType="Category" >
+            delete from category_ where id= #{id}   
+        </delete>
+         
+        <select id="get" parameterType="_int" resultType="Category">
+            select * from   category_  where id= #{id}    
+        </select>
+ 
+        <update id="update" parameterType="Category" >
+            update category_ set name=#{name} where id=#{id}    
+        </update>
+        <select id="list" resultType="Category">
+            select * from   category_      
+        </select>     
+    </mapper>
+```
+CategoryService  
+```
+package com.how2java.service;
+ 
+import java.util.List;
+import com.how2java.pojo.Category;
+ 
+public interface CategoryService {
+    List<Category> list();
+}
+```
+CategoryServiceImpl被注解@Service标示为一个Service  
+并且装配了categoryMapper  
+```
+package com.how2java.service.impl;
+ 
+import java.util.List;
+ 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+ 
+import com.how2java.mapper.CategoryMapper;
+import com.how2java.pojo.Category;
+import com.how2java.service.CategoryService;
+ 
+@Service
+public class CategoryServiceImpl  implements CategoryService{
+    @Autowired
+    CategoryMapper categoryMapper;
+     
+    public List<Category> list(){
+        return categoryMapper.list();
+    };
+ 
+}
+```
+CategoryController被@Controller标示为了控制器  
+自动装配了categoryService  
+通过@RequestMapping映射访问路径/listCategory路径到方法listCategory()。  
+在listCategory()方法中，通过categoryService获取收，然后存放在"cs"这个key上。  
+```
+package com.how2java.controller;
+ 
+import java.util.List;
+ 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+ 
+import com.how2java.pojo.Category;
+import com.how2java.service.CategoryService;
+ 
+// 告诉spring mvc这是一个控制器类
+@Controller
+@RequestMapping("")
+public class CategoryController {
+    @Autowired
+    CategoryService categoryService;
+ 
+    @RequestMapping("listCategory")
+    public ModelAndView listCategory(){
+        ModelAndView mav = new ModelAndView();
+        List<Category> cs= categoryService.list();
+         
+        // 放入转发参数
+        mav.addObject("cs", cs);
+        // 放入jsp路径
+        mav.setViewName("listCategory");
+        return mav;
+    }
+ 
+}
+```
+web.xml配置  
+在WEB-INF目录下新增加web.xml，web.xml的作用：
+1. 通过ContextLoaderListener在web app启动的时候，获取contextConfigLocation配置文件的文件名applicationContext.xml，并进行Spring相关初始化工作  
+
+2. 有任何访问，都被DispatcherServlet所拦截，这就是Spring MVC那套工作机制了。  
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:web="http://java.sun.com/xml/ns/javaee"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
+     
+    <!-- spring的配置文件-->
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>classpath:applicationContext.xml</param-value>
+    </context-param>
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
+     
+    <!-- spring mvc核心：分发servlet -->
+    <servlet>
+        <servlet-name>mvc-dispatcher</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <!-- spring mvc的配置文件 -->
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>classpath:springMVC.xml</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>mvc-dispatcher</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+     
+</web-app>
+```
+applicationContext.xml配置  
+直接在src根目录上新建一个applicationContext.xml文件（Spring配置文件），作用如下：    
+1.通过注解，将Service的生命周期纳入Spring的管理  
+```
+<context:annotation-config />
+<context:component-scan base-package="com.how2java.service" />
+```
+2.配置数据源  
+```
+<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+```
+3.扫描存放SQL语句的Category.xml  
+```
+<bean id="sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+```
+4.扫描Mapper，并将其生命周期纳入Spring的管理  
+```
+<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+```
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xsi:schemaLocation="
+     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+     http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+     http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+     
+   <context:annotation-config />
+    <context:component-scan base-package="com.how2java.service" />
+ 
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">  
+      <property name="driverClassName">  
+          <value>com.mysql.jdbc.Driver</value>  
+      </property>  
+      <property name="url">  
+          <value>jdbc:mysql://localhost:3306/how2java?characterEncoding=UTF-8</value>  
+     
+      </property>  
+      <property name="username">  
+          <value>root</value>  
+      </property>  
+      <property name="password">  
+          <value>admin</value>  
+      </property>     
+    </bean>
+     
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="typeAliasesPackage" value="com.how2java.pojo" />
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath:com/how2java/mapper/*.xml"/>
+    </bean>
+ 
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.how2java.mapper"/>
+    </bean>
+     
+</beans>
+```
+Spring MVC配置  
+在src目录下新建springMVC.xml  
+(1)扫描Controller,并将其生命周期纳入Spring管理  
+
+```
+<context:annotation-config/>
+<context:component-scan base-package="com.how2java.controller">
+      <context:include-filter type="annotation" 
+      expression="org.springframework.stereotype.Controller"/>
+</context:component-scan>
+```
+(2)注解驱动，以使得访问路径与方法的匹配可以通过注解配置  
+```
+<mvc:annotation-driven />
+```
+(3)静态页面，如html,css,js,images可以访问  
+```
+<mvc:default-servlet-handler />
+```
+(4)视图定位到/WEB/INF/jsp 这个目录下  
+```
+<bean  class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property name="viewClass"
+        value="org.springframework.web.servlet.view.JstlView" />
+    <property name="prefix" value="/WEB-INF/jsp/" />
+    <property name="suffix" value=".jsp" />
+</bean>
+```
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd 
+        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd">
+ 
+    <context:annotation-config/>
+ 
+    <context:component-scan base-package="com.how2java.controller">
+          <context:include-filter type="annotation"
+          expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+ 
+    <mvc:annotation-driven />
+     
+    <mvc:default-servlet-handler />
+ 
+    <!-- 视图定位 -->
+    <bean
+        class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass"
+            value="org.springframework.web.servlet.view.JstlView" />
+        <property name="prefix" value="/WEB-INF/jsp/" />
+        <property name="suffix" value=".jsp" />
+    </bean>
+</beans>
+```
+最后写个前端页面  
+在WEB-INF下创建jsp目录，并创建文件listCategory.jsp   
+在这个jsp文件中，通过forEach标签，遍历CategoryController传递过来的集合数据。  
+```
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8" import="java.util.*"%>
+  
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+  
+<table align='center' border='1' cellspacing='0'>
+    <tr>
+        <td>id</td>
+        <td>name</td>
+    </tr>
+    <c:forEach items="${cs}" var="c" varStatus="st">
+        <tr>
+            <td>${c.id}</td>
+            <td>${c.name}</td>
+               
+        </tr>
+    </c:forEach>
+</table>
+```
+部署到tomcat，运行测试  
+![d]({{ "/img/post/Spring/4.png" | prepend: site.baseurl }} )  
+<br />
+**总体思路：**
+1. 首先浏览器上访问路径 /listCategory
+2. tomcat根据web.xml上的配置信息，拦截到了/listCategory，并将其交由DispatcherServlet处理。
+3. DispatcherServlet 根据springMVC的配置，将这次请求交由CategoryController类进行处理，所以需要进行这个类的实例化
+4. 在实例化CategoryController的时候，注入CategoryServiceImpl
+5. 在实例化CategoryServiceImpl的时候，又注入CategoryMapper
+6. 根据ApplicationContext.xml中的配置信息，将CategoryMapper和Category.xml关联起来了。
+7. 这样拿到了实例化好了的CategoryController,并调用listCategory方法
+8. 在listCategory方法中，访问CategoryService,并获取数据，并把数据放在"cs"上，接着服务端跳转到listCategory.jsp去
+9. 最后在listCategory.jsp 中显示数据
+
+<br />
+## 分页
+分页类  
+```
+package com.how2java.util;
+ 
+public class page {
+    //开始位置
+    int start=0;
+    //每页数据个数
+    int count = 5;
+    //最后一页的位置
+    int last = 0;
+    public int getStart() {
+        return start;
+    }
+    public void setStart(int start) {
+        this.start = start;
+    }
+    public int getCount() {
+        return count;
+    }
+    public void setCount(int count) {
+        this.count = count;
+    }
+    public int getLast() {
+        return last;
+    }
+    public void setLast(int last) {
+        this.last = last;
+    }
+     
+    public void caculateLast(int total) {
+        // 假设总数是50，是能够被5整除的，那么最后一页的开始就是45
+        if (0 == total % count)
+            last = total - count;
+        // 假设总数是51，不能够被5整除的，那么最后一页的开始就是50
+        else
+            last = total - total % count;       
+    }
+}
+```
+修改Category.xml  
+修改list，应用分页查询  
+增加查询总数的total sql语句  
+```
+<select id="list" resultType="Category">
+    select * from   category_      
+    <if test="start!=null and count!=null">
+            limit #{start},#{count}
+    </if>
+</select>
+<select id="total" resultType="int">
+    select count(*) from   category_      
+</select>   
+```
+对应地修改CategoryMapper  
+增加total方法来调用Category.xml中total对应的sql语句  
+增加list(page page)，根据分页来查询数据  
+```
+package com.how2java.mapper;
+  
+import java.util.List;
+ 
+import com.how2java.pojo.Category;
+import com.how2java.util.page;
+  
+public interface CategoryMapper {
+  
+    public void add(Category category);  
+        
+    public void delete(int id);  
+        
+    public Category get(int id);  
+      
+    public void update(Category category);   
+        
+    public List<Category> list();
+     
+    public List<Category> list(page page);
+    
+    public int total(); 
+     
+}
+```
+修改CategoryService  
+增加total获取所有，增加list(page page)，根据分页来查询数据  
+```
+package com.how2java.service;
+ 
+import java.util.List;
+import com.how2java.pojo.Category;
+import com.how2java.util.page;
+ 
+public interface CategoryService {
+    List<Category> list();
+    int total();
+    List<Category> list(page page);
+}
+```
+实现total()和list(page page)方法  
+```
+package com.how2java.service.impl;
+ 
+import java.util.List;
+ 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+ 
+import com.how2java.mapper.CategoryMapper;
+import com.how2java.pojo.Category;
+import com.how2java.service.CategoryService;
+import com.how2java.util.page;
+ 
+@Service
+public class CategoryServiceImpl  implements CategoryService{
+    @Autowired
+    CategoryMapper categoryMapper;
+     
+    public List<Category> list(){
+        return categoryMapper.list();
+    }
+ 
+    @Override
+    public List<Category> list(page page) {
+        // TODO Auto-generated method stub
+        return categoryMapper.list(page);
+    }
+ 
+    @Override
+    public int total() {
+        return categoryMapper.total();
+    };
+ 
+}
+```
+修改CategoryController类  
+修改listCategory方法，接收分页信息page  
+根据分页对象，进行查询获取对象集合cs`List<Category> cs= categoryService.list(page);`  
+根据总数，计算出最后一页的信息`int total = categoryService.total();`  
+```
+package com.how2java.controller;
+ 
+import java.util.List;
+ 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+ 
+import com.how2java.pojo.Category;
+import com.how2java.service.CategoryService;
+import com.how2java.util.page;
+ 
+// 告诉spring mvc这是一个控制器类
+@Controller
+@RequestMapping("")
+public class CategoryController {
+    @Autowired
+    CategoryService categoryService;
+ 
+    @RequestMapping("listCategory")
+    public ModelAndView listCategory(page page){
+     
+        ModelAndView mav = new ModelAndView();
+        List<Category> cs= categoryService.list(page);
+        int total = categoryService.total();
+         
+        page.caculateLast(total);
+         
+        // 放入转发参数
+        mav.addObject("cs", cs);
+        // 放入jsp路径
+        mav.setViewName("listCategory");
+        return mav;
+    }
+ 
+}
+```
+修改listCategory.jsp，提供首页，上一页，下一页，末页等功能  
+```
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8" import="java.util.*"%>
+  
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+  
+ <div style="width:500px;margin:0px auto;text-align:center">
+    <table align='center' border='1' cellspacing='0'>
+        <tr>
+            <td>id</td>
+            <td>name</td>
+        </tr>
+        <c:forEach items="${cs}" var="c" varStatus="st">
+            <tr>
+                <td>${c.id}</td>
+                <td>${c.name}</td>
+            </tr>
+        </c:forEach>
+    </table>
+    <div style="text-align:center">
+        <a href="?start=0">首  页</a>
+        <a href="?start=${page.start-page.count}">上一页</a>
+        <a href="?start=${page.start+page.count}">下一页</a>
+        <a href="?start=${page.last}">末  页</a>
+    </div>
+ </div>
+```
+结果  
+![a]({{ "/img/post/SSM/1.png" | prepend: site.baseurl }} )  
+
+<br />
+## PageHelper实现分页效果
+正如之前的Mybatis学习中，PageHelper实现分页更加简便。  
+导入两个jar包`pagehelper-5.1.0-beta2.jar`，`jsqlparser-1.0.jar`  
+修改applicationContext.xml，增加PageHelper的配置  
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xsi:schemaLocation="
+     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+     http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+     http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+     
+     
+   <context:annotation-config />
+    <context:component-scan base-package="com.how2java.service" />
+ 
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">  
+      <property name="driverClassName">  
+          <value>com.mysql.jdbc.Driver</value>  
+      </property>  
+      <property name="url">  
+          <value>jdbc:mysql://localhost:3306/how2java?characterEncoding=UTF-8</value>  
+      </property>  
+      <property name="username">  
+          <value>root</value>  
+      </property>  
+      <property name="password">  
+          <value>admin</value>  
+      </property>     
+    </bean>
+     
+     
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="typeAliasesPackage" value="com.how2java.pojo" />
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath:com/how2java/mapper/*.xml"/>
+        <property name="plugins">
+            <array>
+              <bean class="com.github.pagehelper.PageInterceptor">
+                <property name="properties">
+                  <!--使用下面的方式配置参数，一行配置一个 -->
+                  <value>
+                  </value>
+                </property>
+              </bean>
+            </array>
+          </property> 
+    </bean>
+ 
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.how2java.mapper"/>
+    </bean>
+     
+</beans>
+```
+其中，名为plugins的属性属于插件配置  
+于是，CategoryService可以去掉total方法和list(page page) 方法  
+实现类CategoryServiceImpl也同样去掉两个方法  
+Mapper接口CategoryMapper同样去掉两个方法，对应的Category.xml去掉对应的sql语句  
+只需对控制器CategoryController做一些修改：  
+调用categoryService.list(); 之前，执行`PageHelper.offsetPage(page.getStart(),5);`  
+通过`int total = (int) new PageInfo<>(cs).getTotal();`获取总数  
+代码如下：  
+```
+package com.how2java.controller;
+ 
+import java.util.List;
+ 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.support.PagedListHolder;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+ 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import com.how2java.pojo.Category;
+import com.how2java.service.CategoryService;
+import com.how2java.util.page;
+ 
+// 告诉spring mvc这是一个控制器类
+@Controller
+@RequestMapping("")
+public class CategoryController {
+    @Autowired
+    CategoryService categoryService;
+ 
+    @RequestMapping("listCategory")
+    public ModelAndView listCategory(page page){
+        ModelAndView mav = new ModelAndView();
+        PageHelper.offsetPage(page.getStart(),5);
+        List<Category> cs= categoryService.list();
+        int total = (int) new PageInfo<>(cs).getTotal();
+         
+        page.caculateLast(total);
+         
+        // 放入转发参数
+        mav.addObject("cs", cs);
+        // 放入jsp路径
+        mav.setViewName("listCategory");
+        return mav;
+    }
+ 
+}
+```
+部署项目，得到分页效果同手动改变sql语句  
+<br />
+
+## 连接池
+注释掉原来的datasource，替换为Druid连接池，配置如下：    
+```
+<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+    <!-- 基本属性 url、user、password -->
+    <property name="url" value="jdbc:mysql://localhost:3306/how2java?characterEncoding=UTF-8" />
+    <property name="username" value="root" />
+    <property name="password" value="admin" />
+    <property name="driverClassName" value="com.mysql.jdbc.Driver" />
+
+    <!-- 配置初始化大小、最小、最大 -->
+    <property name="initialSize" value="3" />
+    <property name="minIdle" value="3" />
+    <property name="maxActive" value="20" />
+
+    <!-- 配置获取连接等待超时的时间 -->
+    <property name="maxWait" value="60000" />
+
+    <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+    <property name="timeBetweenEvictionRunsMillis" value="60000" />
+
+    <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+    <property name="minEvictableIdleTimeMillis" value="300000" />
+
+    <property name="validationQuery" value="SELECT 1" />
+    <property name="testWhileIdle" value="true" />
+    <property name="testOnBorrow" value="false" />
+    <property name="testOnReturn" value="false" />
+
+    <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+    <property name="poolPreparedStatements" value="true" />
+    <property name="maxPoolPreparedStatementPerConnectionSize" value="20" />
+</bean>
+```
+效果就是，当需要连接数据库时，从池中获取空闲链接  
+
+<br />
+## CRUD
+前面完成的都是简单的查询操作  
+接下来，补充增加、删除、更改操作  
+首先在CategoryService中增加对应方法：  
+```
+package com.how2java.service;
+ 
+import java.util.List;
+ 
+import com.how2java.pojo.Category;
+ 
+public interface CategoryService {
+    List<Category> list();
+    void add(Category c);
+    void update(Category c);
+    void delete(Category c);
+    Category get(int id);
+}
+```
+实现类CategoryServiceImpl要实现这些方法  
+```
+package com.how2java.service.impl;
+ 
+import java.util.List;
+ 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+ 
+import com.how2java.mapper.CategoryMapper;
+import com.how2java.pojo.Category;
+import com.how2java.service.CategoryService;
+ 
+@Service
+public class CategoryServiceImpl  implements CategoryService{
+    @Autowired
+    CategoryMapper categoryMapper;
+     
+    public List<Category> list(){
+        return categoryMapper.list();
+    }
+    @Override
+    public void add(Category c) {
+        categoryMapper.add(c);
+        
+    }
+
+    @Override
+    public void update(Category c) {
+        categoryMapper.update(c);
+    }
+
+    @Override
+    public void delete(Category c) {
+        categoryMapper.delete(c.getId());
+    }
+
+    @Override
+    public Category get(int id) {
+        // TODO Auto-generated method stub
+        return categoryMapper.get(id);
+    }
+}
+```
+之前写的Category.xml和CategoryMapper已经涉及到增删改功能，不需更改  
+接下来就是控制器CategoryController，增加如下方法  
+```
+@RequestMapping("addCategory")
+public ModelAndView addCategory(Category category){
+    categoryService.add(category);
+    ModelAndView mav = new ModelAndView("redirect:/listCategory");
+    return mav;
+}   
+@RequestMapping("deleteCategory")
+public ModelAndView deleteCategory(Category category){
+    categoryService.delete(category);
+    ModelAndView mav = new ModelAndView("redirect:/listCategory");
+    return mav;
+}   
+@RequestMapping("editCategory")
+public ModelAndView editCategory(Category category){
+    Category c= categoryService.get(category.getId());
+    ModelAndView mav = new ModelAndView("editCategory");
+    mav.addObject("c", c);
+    return mav;
+}   
+@RequestMapping("updateCategory")
+public ModelAndView updateCategory(Category category){
+    categoryService.update(category);
+    ModelAndView mav = new ModelAndView("redirect:/listCategory");
+    return mav;
+}   
+```
+最后，更改listCategory.jsp  
+```
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8" import="java.util.*"%>
+ 
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+ 
+ <div style="width:500px;margin:0px auto;text-align:center">
+    <table align='center' border='1' cellspacing='0'>
+        <tr>
+            <td>id</td>
+            <td>name</td>
+            <td>编辑</td>
+            <td>删除</td>
+        </tr>
+        <c:forEach items="${cs}" var="c" varStatus="st">
+            <tr>
+                <td>${c.id}</td>
+                <td>${c.name}</td>
+                <td><a href="editCategory?id=${c.id}">编辑</a></td>
+                <td><a href="deleteCategory?id=${c.id}">删除</a></td>
+            </tr>
+        </c:forEach>
+    </table>
+    <div style="text-align:center">
+        <a href="?start=0">首  页</a>
+        <a href="?start=${page.start-page.count}">上一页</a>
+        <a href="?start=${page.start+page.count}">下一页</a>
+        <a href="?start=${page.last}">末  页</a>
+    </div>
+    
+    <div style="text-align:center;margin-top:40px">
+        
+        <form method="post" action="addCategory">
+            分类名称： <input name="name" value="" type="text">
+            <input type="submit" value="增加分类">
+        </form>
+
+    </div>  
+ </div>
+```
+结果：  
+![b]({{ "/img/post/SSM/2.png" | prepend: site.baseurl }} )  
+可以发现，对于中文的分类名称，显示乱码。  
+需要增加一个过滤器，在web.xml添加配置  
+```
+<filter>  
+    <filter-name>CharacterEncodingFilter</filter-name>  
+    <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>  
+    <init-param>  
+        <param-name>encoding</param-name>  
+        <param-value>utf-8</param-value>  
+    </init-param>  
+</filter>  
+<filter-mapping>  
+    <filter-name>CharacterEncodingFilter</filter-name>  
+    <url-pattern>/*</url-pattern>  
+</filter-mapping> 
+```
+重新部署项目：  
+![c]({{ "/img/post/SSM/3.png" | prepend: site.baseurl }} )  
+解决问题！  
+

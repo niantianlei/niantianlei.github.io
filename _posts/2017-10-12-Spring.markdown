@@ -228,7 +228,7 @@ AOP编程其实是很简单的事情，纵观AOP编程，程序员只需要参�
 3、定义增强处理，增强处理就是在AOP框架为普通业务组件织入的处理动作  
 
 <br />
-一个简单的例子  
+一个简单的例子：  
 首先创建业务类  
 ```
 package com.how2java.service;
@@ -275,7 +275,7 @@ public class LoggerAspect {
 ```
 其中，声明业务对象`<bean name="s" class="com.how2java.service.ProductService">
 </bean>`，  
-声明日志切面`<bean id="loggerAspect" class="com.how2java.aspect.LoggerAspect"/>`  
+声明日志切面`<bean id="loggerAspect" class="com.how2java.aspect.LoggerAspect"/>`。  
 `execution(* com.how2java.service.ProductService.*(..)) `表示对满足如下条件的方法调用，进行切面操作：  
 \*返回任意类型  
 com.how2java.service.ProductService.* 包名以 com.how2java.service.ProductService 开头的类的任意方法  
