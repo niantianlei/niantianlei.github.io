@@ -154,14 +154,14 @@ Mybatis二级缓存是按namespace分，每一个namespace的mapper都有一个�
 <setting name="cacheEnabled" value="true"/>
 ```
 在Category.xml中增加 `<cache/>`以启动对Category对象的二级缓存  
-让Category类实现序列化接口  
 测试代码不变  
 ![e]({{ "/img/post/Mybatis/65.png" | prepend: site.baseurl }} )  
 
 <br>
 如果缓存中有数据就不用从数据库中获取，大大提高系统性能。  
 二级缓存以namespace为单位，insert,update,delete操作会清空所在namespace下的全部缓存，使用Mybatis generator生成的代码，各个表独立，每个表都有自己的namespace。  
-
+运行时遇到`org.apache.ibatis.cache.CacheException: Error serializing object.`错误，网上查了下，原因是没有让实体类序列化。  
+**解决方案：**让Category类实现Serializable接口。不再报错。  
 #### 逆向工程
 重新创建一个项目  
 首先导入jar包`mybatis-generator-core-1.3.5.jar`  采用逆向工程方式，根据数据库中的表，通过Mybatis Generator生成pojo, mapper和xml。  
@@ -263,3 +263,11 @@ for (Category c : cs) {
 ```
 结果  
 ![f]({{ "/img/post/Mybatis/66.png" | prepend: site.baseurl }} )  
+<br />
+## 错误总结
+1`org.apache.ibatis.binding.BindingException: Invalid bound statement (not found)`  
+解决：主要是Mapper.xml的namespace应保持准确且和mybatis配置中的相同。  
+因此，最好把Mapper.java 和Mapper.xml放入到同一个包中。  
+2`is not known to the MapperRegistry`，namespace不是接口的全限定名。  
+3上面已经提过的二级缓存要序列化实体类。  
+

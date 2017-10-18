@@ -196,19 +196,39 @@ web.xml配置
         <servlet-name>mvc-dispatcher</servlet-name>
         <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
         <!-- spring mvc的配置文件 -->
+        <!-- servlet范围内的参数，在servlet的init()方法中取得 -->
         <init-param>
             <param-name>contextConfigLocation</param-name>
             <param-value>classpath:springMVC.xml</param-value>
         </init-param>
+        <!-- 大于等于0，容器在应用启动时就加载并初始化这个servlet，
+		小于0或者没有指定时，则表示容器在该servlet被选择时才会去加载 -->
         <load-on-startup>1</load-on-startup>
     </servlet>
     <servlet-mapping>
         <servlet-name>mvc-dispatcher</servlet-name>
         <url-pattern>/</url-pattern>
     </servlet-mapping>
+    
+    <filter>  
+        <filter-name>CharacterEncodingFilter</filter-name>  
+        <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>  
+        <init-param>  
+            <param-name>encoding</param-name>  
+            <param-value>utf-8</param-value>  
+        </init-param>  
+    </filter>  
+    <filter-mapping>  
+        <filter-name>CharacterEncodingFilter</filter-name>  
+        <url-pattern>/*</url-pattern>  
+    </filter-mapping>
      
 </web-app>
 ```
+init-param和context-param的区别：  
+`<init-parm>`配置在`<servlet>`标签中,用来初始化当前Servlet的，属于当前Servlet的配置，因此存放在servletConfig对象中;  
+`<context-param>`直接配置在web.xml的`<web-app>`标签中,属于上下文参数,在整个web应用中都可以使用，它是全局的，因此存放在servletContext对象中(即application对象);  
+<br />
 applicationContext.xml配置  
 直接在src根目录上新建一个applicationContext.xml文件（Spring配置文件），作用如下：    
 1.通过注解，将Service的生命周期纳入Spring的管理  
@@ -892,3 +912,21 @@ public ModelAndView updateCategory(Category category){
 ![c]({{ "/img/post/SSM/3.png" | prepend: site.baseurl }} )  
 解决问题！  
 
+<br />
+## 分析与理解
+三个框架Spring、Spring MVC、Mybatis的分工：  
+- Spring：IOC容器装载bean，生命周期由Spring管理，不再需要关键字new；AOP降低耦合度等等；  
+- SpringMVC：它用于web层，相当于controller（等价于传统的servlet和struts的action），用来处理用户请求。当访问一个地址时，SpringMVC就会拦截这个请求，调用controller层中相应的方法，返回给用户（中间可能包括验证、查询数据库等操作）；  
+-Mybatis：主要是用于对数据库的一些操作。  
+
+dao层（数据访问）：也叫持久层，针对数据库的一些操作。  
+pojo：就是与数据库中的表对应的实体类，在dao层与service层之间传输。  
+service层（业务逻辑接口）：主要负责业务模块的逻辑应用设计。  
+serviceImpl（业务逻辑实现类）：实现业务接口，事务控制等。  
+controller层（控制器）：负责具体的业务模块流程的控制。
+view：即jsp等前端显示界面的设计。  
+<br />**一般来说：**
+DAO层，service层可以单独开发，两者之间的耦合度很低，完全可以独立进行，利于开发比较复杂的项目。  
+controller层，view因为耦合度比较高，因而要结合在一起开发，一般看作为一个整体。因此，我们只需要知道接口的定义，调用接口即可完成所需要的逻辑单元应用，一切显得非常清晰简单。  
+
+service逻辑层设计：service层是建立在DAO层之上的，建立了DAO层后才可以建service层，而Service层又是在Controller层之下的，因而service层应该既调用DAO层的接口，又要提供接口给Controller层的类来进行调用，它刚好处于一个中间层的位置。每个模型都有一个Service接口，每个接口分别封装各自的业务处理方法。
