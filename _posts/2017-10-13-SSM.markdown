@@ -131,7 +131,7 @@ public class CategoryServiceImpl  implements CategoryService{
  
 }
 ```
-CategoryController被@Controller标示为了控制器  
+CategoryController被@Controller标示为控制器  
 自动装配了categoryService  
 通过@RequestMapping映射访问路径/listCategory路径到方法listCategory()。  
 在listCategory()方法中，通过categoryService获取收，然后存放在"cs"这个key上。  
