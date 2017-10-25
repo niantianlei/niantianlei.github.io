@@ -913,6 +913,43 @@ public ModelAndView updateCategory(Category category){
 解决问题！  
 
 <br />
+## log详细配置
+补充上面的`log4j.properties`文件，如下：  
+```
+# 全局日志配置，定义输出级别,输出位置
+log4j.rootLogger=ERROR, stdout, D,E
+# MyBatis logging configuration...
+log4j.logger.com.how2java=TRACE
+# stdout控制器输出
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target = System.out
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+# 输出格式
+log4j.appender.stdout.layout.ConversionPattern=%5p [%t] - %m%n
+### 文件路径输出  ###
+# 每天产生一个日志文件
+log4j.appender.D = org.apache.log4j.DailyRollingFileAppender
+# 输出日志到=E://logs/error.log
+log4j.appender.D.File = E://logs/log.log
+# 直接添加而非覆盖
+log4j.appender.D.Append = true
+# 输出DEBUG级别以上的日志
+log4j.appender.D.Threshold = DEBUG 
+# 配置日志信息的格式        org.apache.log4j.PatternLayout可以灵活地指定布局模式
+log4j.appender.D.layout = org.apache.log4j.PatternLayout
+log4j.appender.D.layout.ConversionPattern = %-d{yyyy-MM-dd HH:mm:ss}  [ %t:%r ] - [ %p ]  %m%n
+
+### 输出ERROR 级别以上的日志到=E://logs/error.log ###
+log4j.appender.E = org.apache.log4j.DailyRollingFileAppender
+log4j.appender.E.File =E://logs/error.log 
+log4j.appender.E.Append = true
+log4j.appender.E.Threshold = ERROR 
+log4j.appender.E.layout = org.apache.log4j.PatternLayout
+log4j.appender.E.layout.ConversionPattern = %-d{yyyy-MM-dd HH:mm:ss}  [ %t:%r ] - [ %p ]  %m%n
+# 局部日志等级:就近原则
+```
+为方便详细说明，直接在代码中给出注释作为对应的解释。。
+<br />
 ## 分析与理解
 三个框架Spring、Spring MVC、Mybatis的分工：  
 - Spring：IOC容器装载bean，生命周期由Spring管理，不再需要关键字new；AOP降低耦合度等等；  
