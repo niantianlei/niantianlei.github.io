@@ -931,6 +931,8 @@ log4j.appender.stdout.layout.ConversionPattern=%5p [%t] - %m%n
 log4j.appender.D = org.apache.log4j.DailyRollingFileAppender
 # 输出日志到=E://logs/error.log
 log4j.appender.D.File = E://logs/log.log
+# 定义文件最大大小  
+log4j.appender.D.MaxFileSize = 10MB 
 # 直接添加而非覆盖
 log4j.appender.D.Append = true
 # 输出DEBUG级别以上的日志
