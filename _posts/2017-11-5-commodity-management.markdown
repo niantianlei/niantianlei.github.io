@@ -345,13 +345,13 @@ deleteEmp方法直接按主键id单独删除，deleteBatch方法批量删除。
 前端代码不贴了，见程序吧。  
 
 ## 总结
-![f]({{ "/img/post/commodity-management/6.png" | prepend: site.baseurl }} )
+<img src="http://chuantu.biz/t6/135/1510278902x3396406237.png" height = "40%" width="40%"/>  
 前端页面发送请求后，前端控制器会分发请求（如果能处理的话），交给对应的控制器来处理请求。  
 在web.xml中，DispatcherServlet映射配置为"/"，则Spring MVC将捕获Web容器所有的请求，包括静态资源的请求。  
 如果处理器不能处理，在dispatcherServlet-servlet.xml配置文件中添加`<mvc:default-servlet-handler/>`，交给tomcat处理。  
 实际上会对进入前端控制器的URL进行检查，如果是静态资源请求，就由Web应用服务器默认的Servlet处理，如果不是静态请求才会用DispatcherServlet处理。  
 经过service层，在dao层操作数据库，进行相应的增删改查操作。然后返回json格式的字符串，交给前端页面，用js即可解析出数据。反馈到页面中。  
 
-##### 注意  
+## 注意  
 因为要把服务端返回的数据封装成一个json，用到`@ResponseBody`注解。需要导入jack-databind的jar包依赖，我添加后，运行tomcat总是(显示enter a problem)启动失败，网上找了许多方法也没解决。晚上思考的时候感觉是版本问题，赶紧下床开电脑将版本由2.8.8换成2.8.3，测试后成功解决问题。  
 主要是缺乏经验，没想到版本会这么重要。  
