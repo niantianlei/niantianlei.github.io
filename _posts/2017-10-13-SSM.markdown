@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "SSM整合学习"
-subtitle:   " \"SSM\""
+subtitle:   " \"Spring+SpringMVC+MyBatis\""
 date:   2017-10-13 13:23:00 +0800
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
@@ -134,7 +134,7 @@ public class CategoryServiceImpl  implements CategoryService{
 CategoryController被@Controller标示为控制器  
 自动装配了categoryService  
 通过@RequestMapping映射访问路径/listCategory路径到方法listCategory()。  
-在listCategory()方法中，通过categoryService获取收，然后存放在"cs"这个key上。  
+在listCategory()方法中，通过categoryService获取，然后存放在"cs"这个key上。  
 ```
 package com.how2java.controller;
  
@@ -173,7 +173,7 @@ web.xml配置
 在WEB-INF目录下新增加web.xml，web.xml的作用：
 1. 通过ContextLoaderListener在web app启动的时候，获取contextConfigLocation配置文件的文件名applicationContext.xml，并进行Spring相关初始化工作  
 
-2. 有任何访问，都被DispatcherServlet所拦截，这就是Spring MVC那套工作机制了。  
+2. 有任何访问，都被DispatcherServlet所拦截，然后分发处理。  
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -309,7 +309,7 @@ Spring MVC配置
 ```
 <mvc:annotation-driven />
 ```
-(3)静态页面，如html,css,js,images可以访问  
+(3)对进入DispatcherServlet的URL进行审查，如果发现是静态资源的请求，则由服务器默认的Servlet处理，如果不是静态资源的请求，才由DispatcherServlet继续处理静态页面，如html,css,js,images由默认Servlet处理  
 ```
 <mvc:default-servlet-handler />
 ```
