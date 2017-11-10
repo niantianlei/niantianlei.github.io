@@ -5,7 +5,6 @@ subtitle:   " \"dynamic programming\""
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
-    - 动态规划
     - 算法
 ---
 

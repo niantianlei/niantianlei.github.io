@@ -5,7 +5,6 @@ subtitle:   " \"What's 'this' in JavaScript\""
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
-    - JavaScript
     - 前端
 ---
 

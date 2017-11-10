@@ -9,7 +9,6 @@ header-mask: 0.4
 catalog:    true
 tags:
     - Java web开发
-    - SpringMVC
 ---
 
 
