@@ -82,11 +82,11 @@ tags:
 HTTP协议，是一个无状态协议。这意味着，所有的状态都保存在服务器端。因此，如果客户端想要操作服务器，必须通过某种手段，让服务器端发生"状态转化"（State Transfer）。而这种转化是建立在表现层之上的，所以就是"表现层状态转化"。  
 客户端用到的手段，只能是HTTP协议。具体来说，就是HTTP协议里面，四个表示操作方式的动词：GET、POST、PUT、DELETE。它们分别对应四种基本操作：GET用来查询商品数据，POST用来新建资源（也可以用于更新资源），PUT用来修改数据，DELETE用来删除商品。  
 
-页面获取数据的形式：客户端（浏览器等）向服务器发送ajax请求，然后服务端返回一个json，利用js解析json就可以获得我们需要的数据。下面详细说明  
+页面获取数据的形式：客户端（浏览器等）向服务器发送ajax请求，然后服务端返回一个JSON，利用js解析JSON就可以获得我们需要的数据。下面详细说明  
 #### 查询
-查询时，首先访问index.jsp页面，页面会发送ajax请求查询数据，ProductsController接受请求，查出数据，转化为json格式传到页面，页面进行解析展示。  
+查询时，首先访问index.jsp页面，页面会发送ajax请求查询数据，ProductsController接受请求，查出数据，转化为JSON格式传到页面，页面进行解析展示。  
 分页使用pageHelper插件，[使用文档](https://github.com/pagehelper/Mybatis-PageHelper/blob/master/wikis/zh/HowToUse.md)。  
-index.jsp发送ajax请求进行数据查询，服务端返回json，解析之后使用dom将数据填充到页面中或改变页面。  
+index.jsp发送ajax请求进行数据查询，服务端返回JSON，解析之后使用dom将数据填充到页面中或改变页面。  
 新建一个控制器ProductsController.java，编写方法  
 ```
 @RequestMapping("/pros")
@@ -105,7 +105,7 @@ public Msg getProductsWithJson(
 	return Msg.success().add("pageInfo", page);
 }
 ```
-`@ResponseBody`表示将返回对象转为json字符串  
+`@ResponseBody`表示将返回对象转为JSON字符串  
 `@RequestMapping("/pros")`表示处理请求地址映射的注解，也就是遇到pros请求会调用该方法  
 `@RequestParam(value = "pn", defaultValue = "1")`表示传入参数，也就是查询的页码  
 productsService是自动注入的ProductsService实例，其getAll方法用来调用dao层方法实现数据的查询操作。  
@@ -125,7 +125,7 @@ function to_page(pn){
 }
 ```
 url请求路径，data传入页码参数pn。表示调用控制器的getProductsWithJson方法  
-在回调函数中利用js解析json，可以在url输入`http://localhost:8080/commodity-management/pros`查看json数据，以便解析。使用dom添加到页面中，具体细节见程序  
+在回调函数中利用js解析JSON，可以在url输入`http://localhost:8080/commodity-management/pros`查看JSON数据，以便解析。使用dom添加到页面中，具体细节见程序  
 为首页，上一页（末页，下一页）或其他页码增加click事件，利用to_page函数实现分页页面的跳转。  
 
 #### 新增
@@ -350,8 +350,8 @@ deleteEmp方法直接按主键id单独删除，deleteBatch方法批量删除。
 在web.xml中，DispatcherServlet映射配置为"/"，则Spring MVC将捕获Web容器所有的请求，包括静态资源的请求。  
 如果处理器不能处理，在dispatcherServlet-servlet.xml配置文件中添加`<mvc:default-servlet-handler/>`，交给tomcat处理。  
 实际上会对进入前端控制器的URL进行检查，如果是静态资源请求，就由Web应用服务器默认的Servlet处理，如果不是静态请求才会用DispatcherServlet处理。  
-经过service层，在dao层操作数据库，进行相应的增删改查操作。然后返回json格式的字符串，交给前端页面，用js即可解析出数据。反馈到页面中。  
+经过service层，在dao层操作数据库，进行相应的增删改查操作。然后返回JSON格式的字符串，交给前端页面，用js即可解析出数据。反馈到页面中。  
 
 ## 注意  
-因为要把服务端返回的数据封装成一个json，用到`@ResponseBody`注解。需要导入jack-databind的jar包依赖，我添加后，运行tomcat总是(显示enter a problem)启动失败，网上找了许多方法也没解决。晚上思考的时候感觉是版本问题，赶紧下床开电脑将版本由2.8.8换成2.8.3，测试后成功解决问题。  
+因为要把服务端返回的数据封装成一个JSON，用到`@ResponseBody`注解。需要导入jack-databind的jar包依赖，我添加后，运行tomcat总是(显示enter a problem)启动失败，网上找了许多方法也没解决。晚上思考的时候感觉是版本问题，赶紧下床开电脑将版本由2.8.8换成2.8.3，测试后成功解决问题。  
 主要是缺乏经验，没想到版本会这么重要。  
