@@ -19,8 +19,7 @@ ThreadLocal提供了get、set、remove等方法，可以为每个使用该变量
 下面进一步了解ThreadLocal类方法的实现。  
 set()用来设置当前线程中变量的副本，  
 get()方法是用来获取ThreadLocal在当前线程中保存的变量副本，  
-remove()用来移除当前线程中变量的副本，  
-initialValue()是一个protected方法，一般是用来在使用时进行重写的，它是一个延迟加载方法，下面会详细说明。  
+remove()用来移除当前线程中变量的副本。  
 ##### set
 ![a]({{ "/img/post/ThreadLocal/set.png" | prepend: site.baseurl }} )  
 其中，getMap是获取当前线程的ThreadLocalMap。  
@@ -37,10 +36,10 @@ ThreadLocalMap是ThreadLocal的一个静态内部类，内部维护一个Entry�
 线程隔离的原理就在于此，它实现了键值对的设置和获取，每个线程中都有一个独立的ThreadLocalMap副本，它所存储的值，只能被当前线程读取和修改。ThreadLocal类通过操作每一个线程特有的ThreadLocalMap副本，从而实现了变量访问在不同线程中的隔离。因为每个线程的变量都是自己特有的，完全不会有并发错误。  
 ##### get
 ![d]({{ "/img/post/ThreadLocal/get.png" | prepend: site.baseurl }} )  
-同样地，首先通过当前线程拿到对应的ThreadLocalMap变量map。判断map是否为空： 不为空，利用当前ThreadLocal实例this，从map中获取对应的Entry实例，Entry的key就是ThreadLocal实例this，value为此线程的变量值；如果Entry实例不为null，直接返回其储存的value，并进行类型转换；如果map为空，调用setInitialValue()方法返回value。  
+同样地，首先通过当前线程拿到对应的ThreadLocalMap变量map。判断map是否为空：不为空，利用当前ThreadLocal实例this，从map中获取对应的Entry实例，Entry的key就是ThreadLocal实例this，value为此线程的变量值；如果Entry实例不为null，直接返回其储存的value，并进行类型转换；如果map为空，调用setInitialValue()方法返回value。  
 ![e]({{ "/img/post/ThreadLocal/setInitialValue.png" | prepend: site.baseurl }} )  
 可见，setInitialValue方法的实现基本同set，只是将value值设为默认值null。  
 
 ### 内存泄露问题
-因为是以空间换时间，需要考虑内存泄漏问题。ThreadLocalMap中的Entry的key使用了弱引用，若没有任何强引用会被下一次GC回收，无论内存是否充足，但此时value不会被GC回收；而value没有被回收，这时没有办法访问key为null的value，那么到这个线程结束以前，就会一直存在一条强引用链，只有当线程终止时，才会回收，这一阶段会存在内存泄漏。而ThreadLocal的get(),set(),remove()方法都会清除线程ThreadLocalMap里所有key为null的value。  
+因为是以空间换时间，需要考虑内存泄漏问题。ThreadLocalMap中的Entry的key使用了弱引用，若没有任何强引用会被下一次GC回收，无论内存是否充足，但此时value不会被GC回收；而value没有被回收，就会出现key为null的Entry。这时没有办法访问key为null的value，那么到这个线程结束以前，就会一直存在一条强引用链，只有当线程终止时，才会回收，这一阶段会存在内存泄漏。而ThreadLocal的get(),set(),remove()方法都会清除线程ThreadLocalMap里所有key为null的value。  
 因此，最好在使用完ThreadLocal里的对象后调用remove方法，或者set成null。  
