@@ -291,7 +291,7 @@ final V putVal(K key, V value, boolean onlyIfAbsent) {
     return null;
 }
 ```
-如果key或value是null则抛出异常。  
+如果key或value是null则抛出空指针异常。  
 首先一个for死循环，插入成功，才会跳出。  
 如果table为空，进行初始化，  
 根据hash值计算出在table里面的位置，   
@@ -314,7 +314,7 @@ static final int spread(int h) {
 **注：**链表转树时，并不会直接转，只是把这些节点包装成TreeNode放到TreeBin中， 
 再由TreeBin来转化红黑树。  
 
-##### 用到的原子操作
+##### 三个重要的无锁方法
 ```
 @SuppressWarnings("unchecked")
     static final <K,V> Node<K,V> tabAt(Node<K,V>[] tab, int i) {
@@ -330,6 +330,7 @@ static final int spread(int h) {
         U.putObjectVolatile(tab, ((long)i << ASHIFT) + ABASE, v);
     }
 ```
+其中，Unsafe.getObjectVolatile可以直接获取指定内存的数据  
 tabAt获得在i位置上的Node节点。  
 
 casTabAt利用CAS算法设置i位置上的Node节点。将tab[i]和c作比较，相等则将tab[i]设置为v，否则不修改。   
@@ -466,7 +467,7 @@ final long sumCount() {
 
 扩容的时机：  
 1、新增节点后，链表元素大于8，且数组长度小于64，则调用tryPresize方法将数组长度扩大到原来的两倍，并使用transfer方法调整位置。  
-2、addCount方法中CAS后也会调用transfer方法。  
+2、新增节点后，addCount方法记录元素数量，数组元素超过阈值时也会调用transfer方法。  
 
 整个扩容操作分为两个部分：  
 第一部分是构建一个`nextTable`，它的容量是原来的两倍，这个操作是单线程完成的。  
@@ -479,6 +480,7 @@ final long sumCount() {
 如果位置i的元素hash值为-1将advance设为true表示已完成；  
 如果这个位置是Node节点（hash>=0），如果它是一个链表的头节点，就构造一个反序链表一个正序，把他们分别放在nextTable的i和i+n的位置上，位置的判断同HashMap；  
 如果这个位置是TreeBin节点，也做一个反序处理，并且判断是否需要untreefi，把处理的结果分别放在nextTable的i和i+n的位置上；  
+最后在table的i位置上插入forwardNode节点  表示已经处理过该节点；  
 遍历过所有的节点以后就完成了复制工作，这时让nextTable作为新的table，完成扩容。  
 
 多线程的处理：  
