@@ -478,6 +478,7 @@ final long sumCount() {
 
 如果这个位置为空，就在原table中的i位置放入ForwardingNode节点，表示这个槽位处理完毕；  
 如果位置i的元素hash值为-1将advance设为true表示已完成；  
+否则，给头节点增加synchronized锁，  
 如果这个位置是Node节点（hash>=0），如果它是一个链表的头节点，就构造一个反序链表一个正序，把他们分别放在nextTable的i和i+n的位置上，位置的判断同HashMap；  
 如果这个位置是TreeBin节点，也做一个反序处理，并且判断是否需要untreefi，把处理的结果分别放在nextTable的i和i+n的位置上；  
 最后在table的i位置上插入forwardNode节点  表示已经处理过该节点；  
