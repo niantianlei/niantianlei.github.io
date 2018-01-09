@@ -7,6 +7,8 @@ tags:
     - Java
 author: Nian Tianlei
 header-img: "img/post-bg-2016.jpg"
+header-mask: 0.4
+catalog:    true
 ---
 
 > This document is not completed and will be updated in the future.
@@ -22,8 +24,6 @@ header-img: "img/post-bg-2016.jpg"
   * [自旋锁](#jump6)
   * [类锁/对象锁](#jump7)
   * [无锁/偏向锁/轻量级锁/重量级锁](#jump8)
-  * [锁消除](#jump9)
-  * [锁粗化](#jump10)
   * [分段锁](#jump11)
 
 #### <span id = "jump3">可重入锁</span>  
@@ -253,12 +253,7 @@ class MyThread extends Thread {
 轻量级锁解锁时，会使用原子的CAS操作将Displaced Mark Word替换回到对象头，如果成功，则表示没有竞争发生。如果失败，
 表示当前锁存在竞争，锁就会膨胀成重量级锁。
 
-#### <span id = "jump9">锁消除</span>   
-锁消除是Java虚拟机在JIT编译是，通过对运行上下文的扫描，去除不可能存在共享资源竞争的锁，通过锁消除，可以节省毫无意义的请求锁时间。  
-
-#### <span id = "jump10">锁粗化</span>  
-锁粗化，如果虚拟机探测到有这样一串零碎的操作都对同一个对象加锁，将会把加锁同步的范围扩展到整个操作序列的外部，这样就只需要加锁一次就够了。  
-例如：StringBuffer对象的append()操作对同一个对象多次加锁解锁，就会扩大锁同步的范围。  
 
 #### <span id = "jump11">分段锁</span>   
-待更新
+我只知道Java7的`ConcurrentHashMap`是使用了分段锁，
+[这篇博客](https://niantianlei.github.io/2017/12/28/ConcurrentHashMap/)分析了其实现。
