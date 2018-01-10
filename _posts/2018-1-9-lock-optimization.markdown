@@ -2,12 +2,12 @@
 layout: post
 title:  "Java锁优化技术"
 subtitle:  " \"optimal lock \""
-date:   2018-01-09 21:23:18 +0800
+date:   2018-01-09 21:23:19 +0800
 tags:
     - Java
 author: Nian Tianlei
 header-img: "img/post-bg-2016.jpg"
-header-mask: 0.4
+header-mask: 0.5
 catalog:    true
 ---
 
