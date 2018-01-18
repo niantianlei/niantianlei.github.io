@@ -12,7 +12,7 @@ tags:
 ---
 
 
-之前写过一个关于JMM的[博客](https://niantianlei.github.io/2017/09/26/JMM/)，但没有深入，也不够具体。  
+之前写过一个关于JMM的[博客](http://niantianlei.com/2017/09/26/JMM/)，但没有深入，也不够具体。  
 
 
 

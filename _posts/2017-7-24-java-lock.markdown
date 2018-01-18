@@ -256,4 +256,4 @@ class MyThread extends Thread {
 
 #### <span id = "jump11">分段锁</span>   
 我只知道Java7的`ConcurrentHashMap`是使用了分段锁，
-[这篇博客](https://niantianlei.github.io/2017/12/28/ConcurrentHashMap/)分析了其实现。
+[这篇博客](http://niantianlei.com/2017/12/28/ConcurrentHashMap/)分析了其实现。

@@ -31,7 +31,7 @@ tags:
 ![d]({{ "/img/post/commodity-management/4.png" | prepend: site.baseurl }} )  
 
 ## SSM整合
-[上一篇博客](https://niantianlei.github.io/2017/10/13/SSM/)已经有了这部分的介绍，只是添加jar包的方式不一样（一个手动添加一个Maven管理），配置文件是不变的，代码中也有详细注释。这里只做简单说明  
+[上一篇博客](http://niantianlei.com/2017/10/13/SSM/)已经有了这部分的介绍，只是添加jar包的方式不一样（一个手动添加一个Maven管理），配置文件是不变的，代码中也有详细注释。这里只做简单说明  
 `pom.xml`文件管理项目依赖的jar包，各个包的作用见注释。  
 `web.xml`配置Spring、前端控制器、过滤器等。前端控制器的init-param属性指定SpringMVC配置文件的位置，可以删除（不指定），此时需在web.xml统计目录创建名为servlet-name属性值-servlet(如:dispatcherServlet-servlet.xml)的配置文件。  
 `dispatcherServlet-servlet.xml`SpringMVC的配置文件，扫描注释为@controller的控制器，配置视图解析器等。  
@@ -39,7 +39,7 @@ tags:
 `mybatis-config.xml`也可放在Spring的bean里。  
 
 ## MyBatis逆向工程
-利用MyBatis生成对应的pojo、dao类及其映射文件，可参考[之前的博客](https://niantianlei.github.io/2017/10/10/Mybatis6/)，    
+利用MyBatis生成对应的pojo、dao类及其映射文件，可参考[之前的博客](http://niantianlei.com/2017/10/10/Mybatis6/)，    
 以及[官方文档](http://www.mybatis.org/generator/quickstart.html)  
 首先，在MySQL中新建数据库，然后建表，sql脚本也放在了项目中了。  
 新建一个`generatorConfig.xml`官方文档中有示例可直接复制过来，然后进行一些配置修改。  

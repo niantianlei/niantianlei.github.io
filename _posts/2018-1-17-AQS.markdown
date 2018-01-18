@@ -19,7 +19,8 @@ catalog:    true
 `compareAndSetState(int expect, int update)`：使用CAS设置当前状态，具有原子性  
 
 ### 同步队列
-内部有一个同步队列（FIFO的双向队列），完成同步状态的管理  
+内部有一个同步队列（FIFO的双向队列），完成同步状态的管理   
+![AQS]({{ "/img/post/AQS/AQS.png" | prepend: site.baseurl }} )  
 当前线程获取同步状态失败时，同步器会将当前线程以及等待状态等信息构造成一个节点并将其加到同步队列的末端，同时会阻塞当前线程。  
 
 同步队列遵循FIFO，首节点是获取同步状态成功的节点，首节点的线程在释放同步状态时，将会唤醒后继节点，而后继节点将会在获取同步状态成功时将自己设置为首节点。  
@@ -95,7 +96,7 @@ private void doAcquireShared(int arg) {
 非公平锁的获取基本同公平锁，只是减少了当前节点是否有前驱节点的判断。  
 
 ## 读写锁
-读写锁用到了[锁优化的锁分离技术](https://niantianlei.github.io/2018/01/09/lock-optimization/)  
+读写锁用到了[锁优化的锁分离技术](http://niantianlei.com/2018/01/09/lock-optimization/)  
 分离读锁和写锁，并发性有了提高。  
 
 读写锁同样依赖自定义同步器来实现同步功能，读写状态就是同步器的同步状态。  
