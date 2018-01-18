@@ -1,0 +1,111 @@
+---
+layout: post
+title:  "AQS及Lock锁的实现原理"
+subtitle:  " \"AbstractQueuedSynchronizer and Lock\""
+date:   2018-01-17 21:23:19 +0800
+tags:
+    - Java
+author: Nian Tianlei
+header-img: "img/post-bg-2016.jpg"
+header-mask: 0.5
+catalog:    true
+---
+
+## 队列同步器AbstractQueuedSynchronizer
+使用一个int成员变量表示同步状态  
+三个方法访问或修改同步状态  
+`getState()`：获取当前同步状态  
+`setState(int newState)`：设置当前同步状态  
+`compareAndSetState(int expect, int update)`：使用CAS设置当前状态，具有原子性  
+
+### 同步队列
+内部有一个同步队列（FIFO的双向队列），完成同步状态的管理  
+当前线程获取同步状态失败时，同步器会将当前线程以及等待状态等信息构造成一个节点并将其加到同步队列的末端，同时会阻塞当前线程。  
+
+同步队列遵循FIFO，首节点是获取同步状态成功的节点，首节点的线程在释放同步状态时，将会唤醒后继节点，而后继节点将会在获取同步状态成功时将自己设置为首节点。  
+
+同步器包含两个引用，一个指向头节点，另一个指向尾节点。 获取同步状态失败的线程会构造成节点放到队列末端，加入队列的过程必须保证线程安全，因此采用CAS的方法插入。  
+
+### 独占式同步状态获取与释放
+通过调用同步器的`acquire(int arg)`方法获取同步状态  
+![acquire]({{ "/img/post/AQS/acquire.png" | prepend: site.baseurl }} )  
+主要流程：首先调用自定义同步器实现的`tryAcquire(int arg)`方法，该方法保证线程安全的获取同步状态，如果同步状态获取失败，则构造一个独占式的同步节点，并且在一个死循环中通过CAS加入到同步队列的尾部，最后使该节点在死循环中获取同步状态。  
+
+通过调用同步器的`release(int arg)`方法释放同步状态  
+![release]({{ "/img/post/AQS/release.png" | prepend: site.baseurl }} )  
+该方法在释放了同步状态后，会唤醒其后继节点。  
+
+### 共享式同步状态获取与释放
+共享式访问资源时，其他共享式的访问均被允许，而独占式访问被阻塞；独占式访问资源时，其他访问均被阻塞。  
+![acquireShared]({{ "/img/post/AQS/acquireShared.png" | prepend: site.baseurl }} )   
+同步器调用tryAcquireShared(int arg)方法获取同步状态，返回int类型，当返回值大于等于0时，表示能够获取到同步状态，  
+否则调用下面的方法，通过自旋获取同步状态  
+```
+private void doAcquireShared(int arg) {
+    final Node node = addWaiter(Node.SHARED);//将共享节点加入队列的尾部
+    boolean failed = true;//是否成功的标志
+    try {
+        boolean interrupted = false;//等待过程中是否被中断过的标志
+        for (;;) {
+            final Node p = node.predecessor();//前驱节点
+            if (p == head) {//如果到head的下一个，因为head是拿到资源的线程，此时node被唤醒，很可能是head用完资源来唤醒自己的
+                int r = tryAcquireShared(arg);//尝试获取资源
+                if (r >= 0) {//成功
+                    setHeadAndPropagate(node, r);//将head指向自己，还有剩余资源可以再唤醒之后的线程
+                    p.next = null;  
+                    if (interrupted)//如果等待过程中被打断过，此时将中断补上。
+                        selfInterrupt();
+                    failed = false;
+                    return;
+                }
+            }
+            
+            //判断状态，寻找安全点，进入waiting状态，等着被unpark()即唤醒或interrupt()
+            if (shouldParkAfterFailedAcquire(p, node) &&
+                parkAndCheckInterrupt())
+                interrupted = true;
+        }
+    } finally {
+        if (failed)
+            cancelAcquire(node);
+    }
+}
+```
+代码较长，稍微加了点注释  
+可以看出，如果当前节点的前驱为头节点时，尝试获取同步状态，如果返回值大于等于0，表示获取同步状态成功并从自旋状态退出。  
+
+同步器调用releaseShared(int arg)方法释放同步状态  
+![releaseShared]({{ "/img/post/AQS/releaseShared.png" | prepend: site.baseurl }} )   
+在释放同步状态后，会唤醒后续处于等待状态的节点。  
+![doReleaseShared]({{ "/img/post/AQS/doReleaseShared.png" | prepend: site.baseurl }} )   
+与独占式释放的区别在于必须保证线程安全释放，因此通过自旋及CAS算法实现。  
+
+## 重入锁
+支持一个线程对资源的重复加锁。  
+公平锁通过自定义同步器实现锁的获取，源码如下：  
+![tryAcquire]({{ "/img/post/locks/tryAcquire.png" | prepend: site.baseurl }} )  
+首先读取同步状态，如果为0（说明没有线程获取锁），判断是否有前驱节点，如果没有，CAS设置同步状态后返回true；如果同步状态不为0，判断当前线程是否为获取锁的线程，如果是，将状态值增加并返回true，如果不是返回false。  
+
+因此，成功获取锁的线程再次获取锁，会增加同步状态值，就要求在释放时要减少这个值  
+
+释放锁的源码如下：  
+![tryRelease]({{ "/img/post/locks/tryRelease.png" | prepend: site.baseurl }} )  
+由源码可知，每次释放都会减少同步状态值，当同步状态值为0时，将占有线程设为null，返回true，表示释放成功。  
+
+非公平锁的获取基本同公平锁，只是减少了当前节点是否有前驱节点的判断。  
+
+## 读写锁
+读写锁用到了[锁优化的锁分离技术](https://niantianlei.github.io/2018/01/09/lock-optimization/)  
+分离读锁和写锁，并发性有了提高。  
+
+读写锁同样依赖自定义同步器来实现同步功能，读写状态就是同步器的同步状态。  
+同步状态仍然表示一个线程重复获取锁的次数。   
+因为同步状态是32位的int类型变量，要维护读写状态，需要分成两个部分，高16位表示读，低16位表示写。  
+读取写状态时，假如同步状态值为S，写状态即为`S & 0x0000FFFF`，只取低16位；  
+读取读状态时，读状态为`S >>> 16`，右移16位。  
+写状态增加时，更新成`S+1`即可。  
+读状态增加时，需要更新成`S + (1 << 16)`。  
+
+因为读写锁支持锁降级（按照获取写锁，获取读锁，释放写锁的顺序，可将写锁降为读锁），所以写状态为0且读状态大于0时，获取的读锁。  
+
+写锁的获取：读状态不为0或者该线程不是已经获取写锁的线程，则当前线程进入等待状态。  

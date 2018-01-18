@@ -399,7 +399,7 @@ public V get(Object key) {
 ```
 1、根据key计算hash值；并根据hash值计算出在table中的位置i；  
 2、如果table为空或table[i]为null，返回null；  
-3、先检查是否与table[i]头结点的key相同，是则返回头结点的value；头结点的hash值小于0说明该节点正在扩容，则调用节点的find()方法找寻，否则进行遍历查找。  
+3、先检查是否与table[i]头结点的key相同，是则返回头结点的value；头结点的hash值小于0说明该节点正在扩容，则调用节点的find()(find()是Node类的方法实际上也是遍历寻找过程)，否则进行遍历查找。  
 
 #### size实现
 ```
