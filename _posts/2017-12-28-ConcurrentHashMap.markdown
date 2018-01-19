@@ -567,7 +567,7 @@ private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
                    //如果fh>=0 证明这是一个Node节点
                    if (fh >= 0) {
                        int runBit = fh & n;
-                       //以下的部分在完成的工作是构造两个链表  一个是原链表  另一个是原链表的反序排列
+                       //以下的部分在完成的工作是构造两个子链表的过程
                        Node<K,V> lastRun = f;
                        for (Node<K,V> p = f.next; p != null; p = p.next) {
                            int b = p.hash & n;
@@ -606,7 +606,7 @@ private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
                        TreeNode<K,V> lo = null, loTail = null;
                        TreeNode<K,V> hi = null, hiTail = null;
                        int lc = 0, hc = 0;
-                       //构造正序和反序两个链表
+                       //构造两个子链表
                        for (Node<K,V> e = t.first; e != null; e = e.next) {
                            int h = e.hash;
                            TreeNode<K,V> p = new TreeNode<K,V>
@@ -648,3 +648,93 @@ private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
    }
 }
 ```
+
+#### 补充：扩容时两个子链表的构造
+拆分链表，构造两个子链表这一块代码，看了半天才看个大概  
+不得不感概，Java8中`ConcurrentHashMap`设计的巧妙  
+
+##### 情形一
+首先在table数组的i处准备一个链表，用ABCDE表示五个哈希冲突的节点  
+字母右边的0/1代表该节点的hash值&n的结果（其中，n为原table数组的长度），事实上，这个结果是看hash值的二进制形式在原数组长度的那一位是0还是1，&操作之后的结果是0或n  
+为了方便我用0表示0，用1表示不为0(n)。  
+构造的链表如下图所示：  
+![123]({{ "/img/post/ConcurrentHashMap/123.png" | prepend: site.baseurl }} )  
+首先记录首节点的那一位（0或1），为方便我将节点hash值的那一位记作hBit。`int runBit = fh & n;`，fh为首节点的hash；并记录首节点`Node<K,V> lastRun = f;`。  
+```
+for (Node<K,V> p = f.next; p != null; p = p.next) {
+    int b = p.hash & n;
+    if (b != runBit) {
+        runBit = b;
+        lastRun = p;
+    }
+}
+```
+然后，如以上代码所示，进入一个for循环遍历链表  
+第一次，b记录B节点的hBit，`b != runBit`成立，更新runBit为节点B的hBit，更新lastRun为B节点；  
+第二次，b记录C节点的hBit，`b != runBit`成立，更新runBit为节点C的hBit，更新lastRun为C节点；  
+第三次，b记录D节点的hBit，`b != runBit`成立，更新runBit为节点D的hBit，更新lastRun为D节点；  
+第四次，b记录E节点的hBit，此时`b != runBit`不成立，不更新runBit为及lastRun；  
+第五次，p为null退出循环。  
+
+最后的结果是lastRun为D节点，也就是说这段代码会找到链表最后几个hBit相等的节点的首节点，用lastRun表示，并用runBit记录这些节点的hBit  
+我想这是为了后面构造子链表过程中减少节点插入的次数，遍历到lastRun即可停止，因为其后面的节点都属于一个子链表。   
+
+```
+if (runBit == 0) {
+    ln = lastRun;
+    hn = null;
+}
+else {
+    hn = lastRun;
+    ln = null;
+}
+```
+如果最后几个节点的hBit为0，代表这些节点属于低位子链，则将ln(低位子链表头)设为lastRun；如果hBit不为0，那这些节点就属于高位子链表，则将hn(高位子链表头)设为lastRun。  
+根据我构造的链表，runBit是不为0的，所以将ln设为null，hn设为lastRun即D。  
+
+```
+for (Node<K,V> p = f; p != lastRun; p = p.next) {
+    int ph = p.hash; K pk = p.key; V pv = p.val;
+    if ((ph & n) == 0)
+        ln = new Node<K,V>(ph, pk, pv, ln);
+    else
+        hn = new Node<K,V>(ph, pk, pv, hn);
+}
+```
+遍历链表直到lastRun  
+第一次，p = A，A的hBit为0，则在低位链表的ln上采用头节点插入A，此时低位链表为`A -> null`；  
+第二次，p = B，B的hBit不为0，则在高位链表的hn上采用头节点插入B，此时高位链表为`B -> D -> E -> null`；  
+第三次，p = C，C的hBit为0，则在低位链表的ln上采用头节点插入C，此时低位链表为`C -> A -> null`；  
+第四次，p = D，等于lastRun，退出循环。  
+
+剩下的节点E就是D的后继节点，所以不需遍历。  
+此时，低位链表为`C -> A -> null`，高位链表为`B -> D -> E -> null`
+
+```
+setTabAt(nextTab, i, ln);
+setTabAt(nextTab, i + n, hn);
+setTabAt(tab, i, fwd);
+```
+setTabAt方法必须在获取锁的条件下执行，这三行代码就是将ln放到新table的i处，hn放到新table的i+n处，然后原table的i处改为forwardingNode，其hash值为-1，目的是为了告诉其他线程该节点已经处理完毕。  
+
+因此，最后的结果为（图中(·)代表在数组中的位置）  
+![res1]({{ "/img/post/ConcurrentHashMap/res1.png" | prepend: site.baseurl }} )  
+
+##### 情形二
+![res2]({{ "/img/post/ConcurrentHashMap/res2.png" | prepend: site.baseurl }} )  
+改变链表每个节点的hBit，0变成1，1变成0。  得到箭头上方的图，扩容后的结果位于箭头下方。  
+这里ln为lastRun，hn为null。  
+
+*综合情形一和情形二，我们可以看到，原链表从头遍历到lastRun，就可以得到一个完整的子链表。当然，如果lastRun的hBit为0，遍历到lastRun就可以得到高位子链表，又因为子链表的构造过程是头节点插入，所以高位子链表是一个反转的链表。例如情形二的`C -> A`；如果lastRun的hBit不为0，遍历到lastRun就可以得到低位子链表，同样也是反转的。例如情形一的`C -> A`*  
+
+然后我看网上很多博客都说两个子链表是一个正序一个倒序，图都是一样的，估计是抄来的。  
+事实上，我认为这种说法并不准确，我之前假设的两个情形确实符合这个说法。因此我再举个例子。  
+##### 情形三
+![res3]({{ "/img/post/ConcurrentHashMap/res3.png" | prepend: site.baseurl }} )  
+假设在原数组的i处有这样的一个链表，节点数6<8。  
+经过第一个循环过程后，lastRun为E，runBit不为0。  
+hn设为E，ln为null。  
+经过第二个循环，构造出两个子链表，低位链表为`D -> A`，高位链表为`C -> B -> E -> F`。  
+结果为  
+![res4]({{ "/img/post/ConcurrentHashMap/res4.png" | prepend: site.baseurl }} )  
+可以得出结论，两个子链表一个是逆序，一个是自lastRun之后是正序，之前是倒序。如果之前只有一个节点那整个子链表就是正序的，多于一个节点时就不是了。  
