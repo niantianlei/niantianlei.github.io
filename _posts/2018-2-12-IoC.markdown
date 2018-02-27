@@ -1,0 +1,987 @@
+---
+layout:     post
+title:      "Spring源码之IoC"
+subtitle:   " \"IoC in Spring\""
+
+author:     "Nian Tianlei"
+header-img: "img/post-bg-2016.jpg"
+header-mask: 0.4
+catalog:    true
+tags:
+    - Spring源码
+---
+
+控制反转(Inversion of Control, IoC)，就是将对象的创建和依赖关系交给第三方容器处理，用的时候直接去容器里取即可。对象的生命周期也由Spring容器控制。    
+最大的好处就是降低对象之间的耦合度。  
+
+## Spring IoC容器的设计
+IoC容器的设计主要基于BeanFactory接口。  
+```
+package org.springframework.beans.factory;
+
+public interface BeanFactory {
+	
+	String FACTORY_BEAN_PREFIX = "&";
+ 	//根据bean名，从IoC容器得到bean实例
+	Object getBean(String name) throws BeansException;
+	//同上，增加类型验证
+	<T> T getBean(String name, @Nullable Class<T> requiredType) throws BeansException;
+	
+	Object getBean(String name, Object... args) throws BeansException;
+	
+	<T> T getBean(Class<T> requiredType) throws BeansException;
+
+	<T> T getBean(Class<T> requiredType, Object... args) throws BeansException;
+	//检索是否存在	
+	boolean containsBean(String name);
+	//判断是否为单例，默认为true，isPrototype为false
+	boolean isSingleton(String name) throws NoSuchBeanDefinitionException;
+	
+	boolean isPrototype(String name) throws NoSuchBeanDefinitionException;
+
+	boolean isTypeMatch(String name, ResolvableType typeToMatch) throws NoSuchBeanDefinitionException;
+
+	boolean isTypeMatch(String name, @Nullable Class<?> typeToMatch) throws NoSuchBeanDefinitionException;
+
+	@Nullable
+	Class<?> getType(String name) throws NoSuchBeanDefinitionException;
+
+	String[] getAliases(String name);
+
+}
+```
+接口BeanFactory是IoC容器的最顶层接口，spring中所有bean工厂都直接或间接的继承或实现了这个接口。最常见的ApplicationContext接口也继承自BeanFactory。这里顺便提一下，从BeanFactory获取bean时，实例化BeanFactory容器并不会实例化所配置的bean，只有当使用某个bean(getBean)时，才会实例化这个bean；从ApplicationContext获取bean时，实例化ApplicationContext容器时会一并实例化容器中的所有的bean。
+
+另一个接口  
+```
+package org.springframework.beans.factory.config;
+
+import org.springframework.beans.BeanMetadataElement;
+import org.springframework.beans.MutablePropertyValues;
+import org.springframework.core.AttributeAccessor;
+import org.springframework.lang.Nullable;
+
+ // 一个BeanDefinition描述一个bean实例具有的属性值，构造函数参数值，以及具体实现的进一步信息。
+
+public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
+	...
+
+    void setLazyInit(boolean lazyInit);
+
+    boolean isLazyInit();
+ 
+    void setDependsOn(String... dependsOn);
+ 
+    @Nullable
+    String[] getDependsOn();
+
+	...
+}
+```
+BeanDefinition，bean定义接口，spring的工厂里持有的就是此接口定义的内容。从源码可以看出，这个接口继承了两个另外两个接口，一个是AttributeAccessor接口，继承这个接口就意味着BeanDefinition接口拥有了处理属性的能力，另外一个接口是BeanMetedataElement，它可以获得bean的配置定义的元素，对于xml文件来说就是会持有bean的标签。BeanDefinition接口中的两个方法void setDependsOn(String... dependsOn)和String[] getDependsOn()，这两个方法就是设置依赖的bean的名称和获取依赖的bean的名称，这就意味着只要我们有一个BeanDefinition，就能得到得到bean的定义信息和bean之间的依赖关系，从而可以生产一个完整的bean实例。
+
+从上面两个接口，我们大致可以猜出spring是如何持有bean的定义信息及依赖关系了，没错，就是让bean工厂持有一个Map<String，BeanDefinition>，String型的beanName作为key，BeanDefinition型的bean定义作为value，这样就能生产一个bean实例。那么，在某个实现类中一定维护着这样一个map。  
+```
+package org.springframework.beans.factory.support;
+
+@SuppressWarnings("serial")
+public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory
+        implements ConfigurableListableBeanFactory, BeanDefinitionRegistry, Serializable {
+
+	...
+	/** Map of bean definition objects, keyed by bean name */
+    //beanFactory持有此map,这样就可以在任何时候获取bean的BeanDefinition来创建一个bean实例
+    private final Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(256);
+    ...
+```
+该类为默认的bean工厂实现类。  
+果然，以bean名作为key，BeanDefinition作为value。  
+可以推断bean的初始化就是不断地向beanDefinitionMap这个对象中增加bean。  
+
+
+
+## IoC容器的初始化
+初始化过程包括以下几点：  
+1、Resource定位，IoC容器根据开发者的配置，进行资源定位；  
+2、BeanDefinition的载入，Spring根据开发者的配置获取对应的POJO，用以生成对应实例的过程；  
+3、BeanDefinition的注册，把通过BeanDefinition载入的POJO注册到IoC容器中。  
+
+### XmlBeanFactory初始化
+```
+package org.springframework.beans.factory.xml;
+ 
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.core.io.Resource;
+ 
+public class XmlBeanFactory extends DefaultListableBeanFactory {
+	
+	private final XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(this);
+ 
+	/**
+	 * 根据给定来源，创建一个XmlBeanFactory
+	 * @param resource  Spring中对与外部资源的抽象，最常见的是对文件的抽象，特别是XML文件。而且Resource里面通常是保存了Spring使用者的Bean定义，比如applicationContext.xml在被加载时，就会被抽象为Resource来处理。
+	 * @throws BeansException 载入或者解析中发生错误
+	 */
+	public XmlBeanFactory(Resource resource) throws BeansException {
+		this(resource, null);
+	}
+ 
+	/**
+	 * 根据给定来源和BeanFactory，创建一个XmlBeanFactory
+	 * @param parentBeanFactory 父类的BeanFactory
+	 * @throws BeansException 载入或者解析中发生错误
+	 */
+	public XmlBeanFactory(Resource resource, BeanFactory parentBeanFactory) throws BeansException {
+		super(parentBeanFactory);
+		this.reader.loadBeanDefinitions(resource);
+	}
+}
+```
+XmlBeanFactory的功能是建立在DefaultListableBeanFactory这个基本容器的基础上的，并在这个基本容器的基础上还实现了XML读取的附加功能。  
+
+在XmlBeanFactory中实例化了一个XmlBeanDefinitionReader，这个Reader对象就是用来处理以xml形式的持有类信息的BeanDefinition类。在XmlBeanFactory这个容器中还需要BeanDefinition信息，这些信息被封装成Resource，然后把Resource传递给构造方法，然后再使用XmlBeanDefinitionReader进行处理，完成容器的初始化和注入。  
+
+举例：
+```
+ClassPathResource resource =new ClassPathResource("application-context.xml");//1
+DefaultListableBeanFactory factory =new DefaultListableBeanFactory();//2
+XmlBeanDefinitionReader reader =new XmlBeanDefinitionReader(factory);//3
+reader.loadBeanDefinitions(resource);//4
+```
+其中，1：根据xml配置文件创建Resource资源对象，这个抽象资源包含了BeanDefinition的定义信息；  
+2：创建BeanFactory，此处使用了DefaultListableBeanFactory；  
+3：创建了一个XmlBeanDefinitionReader读取器，载入BeanDefinition，将defaultListableBeanFactory对象作为参数传递给Reader，这是因为会将读取的信息回调配置给BeanFactory；  
+4：用Reader读取配置信息，并将解析的bean定义注册到defaultListableBeanFactory中。初始化完毕。  
+
+### FileSystemXmlApplicationContext初始化
+其构造函数：  
+```
+public FileSystemXmlApplicationContext(String... configLocations) throws BeansException {
+    this(configLocations, true, null);
+}
+
+public FileSystemXmlApplicationContext(String[] configLocations, boolean refresh, ApplicationContext parent) throws BeansException {    
+    super(parent);  
+    setConfigLocations(configLocations);  
+    if (refresh) {  
+        refresh();  
+    }  
+} 
+```
+
+一、设置资源加载器和资源定位  
+
+首先，调用父类容器的构造方法(super(parent)方法)为容器设置好Bean资源加载器。  
+再调用setConfigLocations(configLocations)方法设置Bean定义资源文件的定位路径。
+refresh方法刷新容器，实质上是重新初始化。  
+通过追踪FileSystemXmlApplicationContext的继承体系，发现其父类的父类AbstractApplicationContext中初始化IoC容器所做的主要源码如下：  
+```
+public abstract class AbstractApplicationContext extends DefaultResourceLoader implements ConfigurableApplicationContext, DisposableBean {  
+    //静态初始化块，在整个容器创建过程中只执行一次  
+    static {   
+        ContextClosedEvent.class.getName();  
+    }  
+    //FileSystemXmlApplicationContext调用父类构造方法调用的就是该方法  
+    public AbstractApplicationContext(ApplicationContext parent) {  
+        this.parent = parent;  
+        this.resourcePatternResolver = getResourcePatternResolver();  
+    }  
+    //获取一个Spring Source的加载器用于读入Spring Bean定义资源文件  
+    protected ResourcePatternResolver getResourcePatternResolver() {  
+        // AbstractApplicationContext继承DefaultResourceLoader，也是一个S  
+        //Spring资源加载器，其getResource(String location)方法用于载入资源  
+        return new PathMatchingResourcePatternResolver(this);  
+    }   
+... 
+} 
+```
+AbstractApplicationContext构造方法中调用PathMatchingResourcePatternResolver的构造方法创建Spring资源加载器：  
+```
+public PathMatchingResourcePatternResolver(ResourceLoader resourceLoader) {  
+    Assert.notNull(resourceLoader, "ResourceLoader must not be null");  
+    //设置Spring的资源加载器  
+    this.resourceLoader = resourceLoader;  
+} 
+```
+在设置容器的资源加载器之后，接下来FileSystemXmlApplicationContet执行setConfigLocations方法通过调用其父类AbstractRefreshableConfigApplicationContext的方法进行对Bean定义资源文件的定位，该方法的源码如下:    
+```
+//处理单个资源文件路径为一个字符串的情况  
+public void setConfigLocation(String location) {  
+   //String CONFIG_LOCATION_DELIMITERS = ",; /t/n";  
+   //即多个资源文件路径之间用” ,; /t/n”分隔，解析成数组形式  
+    setConfigLocations(StringUtils.tokenizeToStringArray(location, CONFIG_LOCATION_DELIMITERS));  
+}  
+
+//解析Bean定义资源文件的路径，处理多个资源文件字符串数组  
+public void setConfigLocations(String[] locations) {  
+    if (locations != null) {  
+        Assert.noNullElements(locations, "Config locations must not be null");  
+        this.configLocations = new String[locations.length];  
+        for (int i = 0; i < locations.length; i++) {  
+            // resolvePath为同一个类中将字符串解析为路径的方法  
+            this.configLocations[i] = resolvePath(locations[i]).trim();  
+        }  
+    }  
+    else {  
+        this.configLocations = null;  
+    }  
+} 
+```
+通过这两个方法的源码我们可以看出，我们既可以使用一个字符串来配置多个Spring Bean定义资源文件，也可以使用字符串数组，即下面两种方式都是可以的：  
+1. ClasspathResource res = new ClasspathResource(“a.xml,b.xml,……”);  
+
+多个资源文件路径之间可以是用","等分隔。  
+
+2. ClasspathResource res = new ClasspathResource(newString[]{“a.xml”,”b.xml”,……});  
+
+至此，Spring IoC容器在初始化时将配置的Bean定义资源文件定位为Spring封装的Resource。
+
+
+二、AbstractApplicationContext的refresh函数载入Bean定义过程：    
+
+Spring IoC容器对Bean定义资源的载入是从refresh()函数开始的，refresh()是一个模板方法，refresh()方法的作用是：在创建IoC容器前，如果已经有容器存在，则需要把已有的容器销毁和关闭，以保证在refresh之后使用的是新建立起来的IoC容器。refresh的作用类似于对IoC容器的重启，在新建立好的容器中对容器进行初始化，对Bean定义资源进行载入。  
+
+FileSystemXmlApplicationContext通过调用其父类AbstractApplicationContext的refresh()函数启动整个IoC容器对Bean定义的载入过程：  
+```
+public void refresh() throws BeansException, IllegalStateException {  
+       synchronized (this.startupShutdownMonitor) {  
+       //准备刷新容器，获取容器的当时时间，同时给容器设置同步标识  
+       prepareRefresh();  
+       //告诉子类启动refreshBeanFactory()方法，Bean定义资源文件的载入从  
+       //子类的refreshBeanFactory()方法启动  
+       ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();  
+       //为BeanFactory配置容器特性，例如类加载器、事件处理器等  
+       prepareBeanFactory(beanFactory);  
+       try {  
+           //为BeanFactory设置后置处理  
+           postProcessBeanFactory(beanFactory);  
+           //调用所有注册的BeanFactoryPostProcessor的Bean  
+           invokeBeanFactoryPostProcessors(beanFactory);  
+           //为BeanFactory注册BeanPost事件处理器.  
+           //BeanPostProcessor是Bean后置处理器，用于监听容器触发的事件  
+           registerBeanPostProcessors(beanFactory);  
+           //初始化信息源，和国际化相关.  
+           initMessageSource();  
+           //初始化容器事件传播器.  
+           initApplicationEventMulticaster();  
+           //调用子类的某些特殊Bean初始化方法  
+           onRefresh();  
+           //为事件传播器注册事件监听器.  
+           registerListeners();  
+           //初始化所有剩余的单态Bean.  
+           finishBeanFactoryInitialization(beanFactory);  
+           //初始化容器的生命周期事件处理器，并发布容器的生命周期事件  
+           finishRefresh();  
+       }  
+       catch (BeansException ex) {  
+           //销毁以创建的单态Bean  
+           destroyBeans();  
+           //取消refresh操作，重置容器的同步标识.  
+           cancelRefresh(ex);  
+           throw ex;  
+       }  
+   }  
+}
+```
+refresh()方法主要为IoC容器Bean的生命周期管理提供条件，Spring IoC容器载入Bean定义资源文件从其子类容器的refreshBeanFactory()方法启动，所以整个refresh()中“ConfigurableListableBeanFactory beanFactory =obtainFreshBeanFactory();”这句以后代码的都是注册容器的信息源和生命周期事件，载入过程就是从这句代码启动。  
+
+refresh()方法的作用是：在创建IoC容器前，如果已经有容器存在，则需要把已有的容器销毁和关闭，以保证在refresh之后使用的是新建立起来的IoC容器。refresh的作用类似于对IoC容器的重启，在新建立好的容器中对容器进行初始化，对Bean定义资源进行载入。  
+
+ 
+
+AbstractApplicationContext的obtainFreshBeanFactory()方法调用子类容器的refreshBeanFactory()方法，启动容器载入Bean定义资源文件的过程，代码如下：  
+```
+protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {  
+    //这里使用了委派设计模式，父类定义了抽象的refreshBeanFactory()方法，具体实现调用子类容器的refreshBeanFactory()方法
+     refreshBeanFactory();  
+    ConfigurableListableBeanFactory beanFactory = getBeanFactory();  
+    if (logger.isDebugEnabled()) {  
+        logger.debug("Bean factory for " + getDisplayName() + ": " + beanFactory);  
+    }  
+    return beanFactory;  
+} 
+```
+
+AbstractApplicationContext类中只抽象定义了refreshBeanFactory()方法，容器真正调用的是其子类AbstractRefreshableApplicationContext实现的    refreshBeanFactory()方法，方法的源码如下：  
+```
+protected final void refreshBeanFactory() throws BeansException {  
+   if (hasBeanFactory()) {//如果已经有容器，销毁容器中的bean，关闭容器  
+       destroyBeans();  
+       closeBeanFactory();  
+   }  
+   try {  
+        //创建IoC容器  
+        DefaultListableBeanFactory beanFactory = createBeanFactory();  
+        beanFactory.setSerializationId(getId());  
+       //对IoC容器进行定制化，如设置启动参数，开启注解的自动装配等  
+       customizeBeanFactory(beanFactory);  
+       //调用载入Bean定义的方法，主要这里又使用了一个委派模式，在当前类中只定义了抽象的loadBeanDefinitions方法，具体的实现调用子类容器  
+       loadBeanDefinitions(beanFactory);  
+       synchronized (this.beanFactoryMonitor) {  
+           this.beanFactory = beanFactory;  
+       }  
+   }  
+   catch (IOException ex) {  
+       throw new ApplicationContextException("I/O error parsing bean definition source for " + getDisplayName(), ex);  
+   }  
+}
+```
+在这个方法中，先判断BeanFactory是否存在，如果存在则先销毁beans并关闭beanFactory，接着创建DefaultListableBeanFactory，并调用loadBeanDefinitions(beanFactory)装载bean定义。  
+
+然后跟踪AbstractRefreshableApplicationContext子类的loadBeanDefinitions方法：  
+ 
+AbstractRefreshableApplicationContext中只定义了抽象的loadBeanDefinitions方法，容器真正调用的是其子类AbstractXmlApplicationContext对该方法的实现，AbstractXmlApplicationContext的主要源码如下：
+
+```
+public abstract class AbstractXmlApplicationContext extends AbstractRefreshableConfigApplicationContext {  
+    ...
+    //实现父类抽象的载入Bean定义方法  
+    @Override  
+    protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {  
+        //创建XmlBeanDefinitionReader，即创建Bean读取器，并通过回调设置到容器中去，容器使用该读取器读取Bean定义资源  
+        XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);  
+        //为Bean读取器设置Spring资源加载器，AbstractXmlApplicationContext的  
+        //祖先父类AbstractApplicationContext继承DefaultResourceLoader，因此，容器本身也是一个资源加载器  
+       beanDefinitionReader.setResourceLoader(this);  
+       //为Bean读取器设置xml解析器  
+       beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));  
+       //当Bean读取器读取Bean定义的Xml资源文件时，启用Xml的校验机制  
+       initBeanDefinitionReader(beanDefinitionReader);  
+       //真正载入bean  
+       loadBeanDefinitions(beanDefinitionReader);  
+   }  
+
+   //Xml Bean读取器加载Bean定义资源  
+   protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {  
+       //获取Bean定义资源的定位  
+       Resource[] configResources = getConfigResources();  
+       if (configResources != null) {  
+           //Xml Bean读取器调用其父类AbstractBeanDefinitionReader读取定位  
+           //的Bean定义资源  
+           reader.loadBeanDefinitions(configResources);  
+       }  
+       //如果子类中获取的Bean定义资源定位为空，则获取FileSystemXmlApplicationContext构造方法中setConfigLocations方法设置的资源  
+       String[] configLocations = getConfigLocations();  
+       if (configLocations != null) {  
+           //Xml Bean读取器调用其父类AbstractBeanDefinitionReader的
+           //reader.loadBeanDefinitions方法读取Bean定义资源。
+           reader.loadBeanDefinitions(configLocations);  
+       }  
+   }  
+   //这里又使用了一个委托模式，调用子类的获取Bean定义资源定位的方法  
+   //该方法在ClassPathXmlApplicationContext中进行实现，对于我们  
+   //举例分析源码的FileSystemXmlApplicationContext没有使用该方法  
+   protected Resource[] getConfigResources() {  
+       return null;  
+   }  
+   ...
+}
+```
+ 上面的方法调用了XmlBeanDefinitionReader类的loadBeanDefinitions(EncodedResource encodedResource)方法：  
+```
+ /**
+ * Load bean definitions from the specified XML file.
+ * rows BeanDefinitionStoreException in case of loading or parsing errors
+ */
+public int loadBeanDefinitions(EncodedResource encodedResource) throws BeanDefinitionStoreException {
+    Assert.notNull(encodedResource, "EncodedResource must not be null");
+    if (logger.isInfoEnabled()) {
+        logger.info("Loading XML bean definitions from " + encodedResource.getResource());
+    }
+
+    Set<EncodedResource> currentResources = this.resourcesCurrentlyBeingLoaded.get();
+    if (currentResources == null) {
+        currentResources = new HashSet<>(4);
+        this.resourcesCurrentlyBeingLoaded.set(currentResources);
+    }
+    if (!currentResources.add(encodedResource)) {
+        throw new BeanDefinitionStoreException(
+                "Detected cyclic loading of " + encodedResource + " - check your import definitions!");
+    }
+    try {
+    	//拿到xml的InputStream
+        InputStream inputStream = encodedResource.getResource().getInputStream();
+        try {
+            InputSource inputSource = new InputSource(inputStream);
+            if (encodedResource.getEncoding() != null) {
+                inputSource.setEncoding(encodedResource.getEncoding());
+            }
+            //具体的读入过程
+            return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
+        }
+        finally {
+            inputStream.close();
+        }
+    }
+    catch (IOException ex) {
+        throw new BeanDefinitionStoreException(
+                "IOException parsing XML document from " + encodedResource.getResource(), ex);
+    }
+    finally {
+        currentResources.remove(encodedResource);
+        if (currentResources.isEmpty()) {
+            this.resourcesCurrentlyBeingLoaded.remove();
+        }
+    }
+}
+```
+这个方法是从指定的xml文件中加载bean定义，try块中的代码才是载入bean定义的过程。spring将资源返回的输入流包装以后传给了doLoadBeanDefinitions()方法，我们进入这个方法，代码如下：  
+```
+/**
+ * Actually load bean definitions from the specified XML file.
+ * 
+ */
+protected int doLoadBeanDefinitions(InputSource inputSource, Resource resource)
+        throws BeanDefinitionStoreException {
+    try {
+    	//取得xml文件的Document,解析过程是由DocumentLoader完成
+    	//默认为DefaultDocumentLoader
+        Document doc = doLoadDocument(inputSource, resource);
+        //BeanDefinition的详细解析过程，此时会用到Spring的bean配置规则
+        return registerBeanDefinitions(doc, resource);
+    }
+    catch (BeanDefinitionStoreException ex) {
+        throw ex;
+    }
+    catch (SAXParseException ex) {
+        throw new XmlBeanDefinitionStoreException(resource.getDescription(),
+                "Line " + ex.getLineNumber() + " in XML document from " + resource + " is invalid", ex);
+    }
+    catch (SAXException ex) {
+        throw new XmlBeanDefinitionStoreException(resource.getDescription(),
+                "XML document from " + resource + " is invalid", ex);
+    }
+    catch (ParserConfigurationException ex) {
+        throw new BeanDefinitionStoreException(resource.getDescription(),
+                "Parser configuration exception parsing XML from " + resource, ex);
+    }
+    catch (IOException ex) {
+        throw new BeanDefinitionStoreException(resource.getDescription(),
+                "IOException parsing XML document from " + resource, ex);
+    }
+    catch (Throwable ex) {
+        throw new BeanDefinitionStoreException(resource.getDescription(),
+                "Unexpected exception parsing XML document from " + resource, ex);
+    }
+}
+```
+其中doLoadDocument方法:  
+```
+protected Document doLoadDocument(InputSource inputSource, Resource resource) throws Exception {
+    return this.documentLoader.loadDocument(inputSource, getEntityResolver(), this.errorHandler,
+            getValidationModeForResource(resource), isNamespaceAware());
+}
+```	
+使用documentLoader将资源转换成了Document资源，spring使用的documentLoader为DefaultDocumentLoader，loadDocument方法定义在此类中：  
+```
+@Override
+public Document loadDocument(InputSource inputSource, EntityResolver entityResolver,
+        ErrorHandler errorHandler, int validationMode, boolean namespaceAware) throws Exception {
+
+    DocumentBuilderFactory factory = createDocumentBuilderFactory(validationMode, namespaceAware);
+    if (logger.isDebugEnabled()) {
+        logger.debug("Using JAXP provider [" + factory.getClass().getName() + "]");
+    }
+    DocumentBuilder builder = createDocumentBuilder(factory, entityResolver, errorHandler);
+    return builder.parse(inputSource);
+}
+```
+根据XSD文件规定的格式解析了xml文件的各属性。  
+用到的registerBeanDefinitions(doc, resource)方法如下：  
+```
+public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
+	//得到BeanDefinitionDocumentReader对xml进行解析
+	BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
+	int countBefore = getRegistry().getBeanDefinitionCount();
+	//具体解析过程在这个registerBeanDefinitions中完成
+	documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
+	return getRegistry().getBeanDefinitionCount() - countBefore;
+}
+```
+至此就完成了BeanDefinition的载入，再描述一下该过程：首先通过调用xml解析器得到的document对象，但是这个对象并没有按照spring的bean规则进行解析。在完成xml解析之后，才是按照Spring的Bean规则进行解析，这个解析过程在DocumentReader中完成的，这里使用的是默认的DefaultBeanDefinitionDocumentReader。  
+
+将DOM中包含的bean定义信息注册到IOC容器持有的Map<String，BeanDefinition>对象中。只要我们的IOC容器持有了bean定义，就能正确的生产bean实例。  
+
+调用BeanDefinitionReaderUtils的registerBeanDefinition方法向IoC容器注册解析的Bean，BeanDefinitionReaderUtils的注册的源码如下：  
+```
+//将解析的BeanDefinitionHold注册到容器中 
+public static void registerBeanDefinition(BeanDefinitionHolder definitionHolder, BeanDefinitionRegistry registry)  
+    throws BeanDefinitionStoreException {  
+    //获取解析的BeanDefinition的名称
+     String beanName = definitionHolder.getBeanName();  
+    //向IoC容器注册BeanDefinition 
+    registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());  
+    //如果解析的BeanDefinition有别名，向容器为其注册别名  
+     String[] aliases = definitionHolder.getAliases();  
+    if (aliases != null) {  
+        for (String aliase : aliases) {  
+            registry.registerAlias(beanName, aliase);  
+        }  
+    }  
+}
+```
+当调用BeanDefinitionReaderUtils的方法向IoC容器注册解析的BeanDefinition时，真正完成注册功能的是DefaultListableBeanFactory。  
+
+```
+//存储注册的俄BeanDefinition  
+private final Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<String, BeanDefinition>();  
+//向IoC容器注册解析的BeanDefiniton  
+public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition)  
+       throws BeanDefinitionStoreException {  
+   Assert.hasText(beanName, "Bean name must not be empty");  
+   Assert.notNull(beanDefinition, "BeanDefinition must not be null");  
+   //校验解析的BeanDefiniton  
+   if (beanDefinition instanceof AbstractBeanDefinition) {  
+       try {  
+           ((AbstractBeanDefinition) beanDefinition).validate();  
+       }  
+       catch (BeanDefinitionValidationException ex) {  
+           throw new BeanDefinitionStoreException(beanDefinition.getResourceDescription(), beanName,  
+                   "Validation of bean definition failed", ex);  
+       }  
+   }  
+   //注册的过程中需要线程同步，以保证数据的一致性  
+   synchronized (this.beanDefinitionMap) {  
+       Object oldBeanDefinition = this.beanDefinitionMap.get(beanName);  
+       //检查是否有同名的BeanDefinition已经在IoC容器中注册，如果已经注册，  
+       //并且不允许覆盖已注册的Bean，则抛出注册失败异常  
+       if (oldBeanDefinition != null) {  
+           if (!this.allowBeanDefinitionOverriding) {  
+               throw new BeanDefinitionStoreException(beanDefinition.getResourceDescription(), beanName,  
+                       "Cannot register bean definition [" + beanDefinition + "] for bean '" + beanName +  
+                       "': There is already [" + oldBeanDefinition + "] bound.");  
+           }  
+           else {//如果允许覆盖，则同名的Bean，后注册的覆盖先注册的  
+               if (this.logger.isInfoEnabled()) {  
+                   this.logger.info("Overriding bean definition for bean '" + beanName +  
+                           "': replacing [" + oldBeanDefinition + "] with [" + beanDefinition + "]");  
+               }  
+           }  
+       }  
+       //IoC容器中没有已经注册同名的Bean，按正常注册流程注册  
+       else {  
+           this.beanDefinitionNames.add(beanName);  
+           this.frozenBeanDefinitionNames = null;  
+       }  
+       this.beanDefinitionMap.put(beanName, beanDefinition);  
+       //重置所有已经注册过的BeanDefinition的缓存  
+       resetBeanDefinition(beanName);  
+   }  
+}
+```
+完成IoC初始化工作。现在IoC容器中已经建立了整个Bean的配置信息，这些BeanDefinition信息已经可以使用，并且可以被检索，IoC容器的作用就是对这些注册的Bean定义信息进行处理和维护。这些的注册的Bean定义信息是IoC容器控制反转的基础，正是有了这些注册的数据，容器才可以进行依赖注入。  
+
+## 依赖注入
+**依赖注入的时机：**1.第一次通过getBean方法获取Bean时，IoC容器触发依赖注入。  
+2.在Bean定义资源中为<Bean>元素配置了lazy-init属性，在IoC容器初始化的时候触发依赖注入。  
+
+在Spring中，如果Bean定义的单态模式(Singleton)，则容器在创建之前先从缓存中查找，以确保整个容器中只存在一个实例对象。如果Bean定义的是原型模式(Prototype)，则容器每次都会创建一个新的实例对象。除此之外，Bean定义还可以扩展为指定其生命周期范围。
+
+
+getBean是依赖注入的起点，具体的Bean实例对象的创建过程由AbstractAutowireCapableBeanFactory的createBean方法实现  
+```
+//创建Bean实例对象  
+protected Object createBean(final String beanName, final RootBeanDefinition mbd, final Object[] args)  
+       throws BeanCreationException {  
+   if (logger.isDebugEnabled()) {  
+       logger.debug("Creating instance of bean '" + beanName + "'");  
+   }  
+   //判断需要创建的Bean是否可以实例化，即是否可以通过当前的类加载器加载  
+   resolveBeanClass(mbd, beanName);  
+   //校验和准备Bean中的方法覆盖  
+   try {  
+       mbd.prepareMethodOverrides();  
+   }  
+   catch (BeanDefinitionValidationException ex) {  
+       throw new BeanDefinitionStoreException(mbd.getResourceDescription(),  
+               beanName, "Validation of method overrides failed", ex);  
+   }  
+   try {  
+       //如果Bean配置了初始化前和初始化后的处理器，则试图返回一个需要创建//Bean的代理对象  
+       Object bean = resolveBeforeInstantiation(beanName, mbd);  
+       if (bean != null) {  
+           return bean;  
+       }  
+   }  
+   catch (Throwable ex) {  
+       throw new BeanCreationException(mbd.getResourceDescription(), beanName,  
+               "BeanPostProcessor before instantiation of bean failed", ex);  
+   }  
+   //创建Bean的入口  
+   Object beanInstance = doCreateBean(beanName, mbd, args);  
+   if (logger.isDebugEnabled()) {  
+       logger.debug("Finished creating instance of bean '" + beanName + "'");  
+   }  
+   return beanInstance;  
+}  
+//真正创建Bean的方法  
+protected Object doCreateBean(final String beanName, final RootBeanDefinition mbd, final Object[] args) {  
+   //封装被创建的Bean对象  
+   BeanWrapper instanceWrapper = null;  
+   if (mbd.isSingleton()){//单态模式的Bean，先从容器中缓存中获取同名Bean  
+       instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);  
+   }  
+   if (instanceWrapper == null) {  
+       //创建实例对象  
+       instanceWrapper = createBeanInstance(beanName, mbd, args);  
+   }  
+   final Object bean = (instanceWrapper != null ? instanceWrapper.getWrappedInstance() : null);  
+   //获取实例化对象的类型  
+   Class beanType = (instanceWrapper != null ? instanceWrapper.getWrappedClass() : null);  
+   //调用PostProcessor后置处理器  
+   synchronized (mbd.postProcessingLock) {  
+       if (!mbd.postProcessed) {  
+           applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);  
+           mbd.postProcessed = true;  
+       }  
+   }  
+   // Eagerly cache singletons to be able to resolve circular references  
+   //向容器中缓存单态模式的Bean对象，以防循环引用  
+   boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&  
+           isSingletonCurrentlyInCreation(beanName));  
+   if (earlySingletonExposure) {  
+       if (logger.isDebugEnabled()) {  
+           logger.debug("Eagerly caching bean '" + beanName +  
+                   "' to allow for resolving potential circular references");  
+       }  
+       //这里是一个匿名内部类，为了防止循环引用，尽早持有对象的引用  
+       addSingletonFactory(beanName, new ObjectFactory() {  
+           public Object getObject() throws BeansException {  
+               return getEarlyBeanReference(beanName, mbd, bean);  
+           }  
+       });  
+   }  
+   //Bean对象的初始化，依赖注入在此触发  
+   //这个exposedObject在初始化完成之后返回作为依赖注入完成后的Bean  
+   Object exposedObject = bean;  
+   try {  
+       //将Bean实例对象封装，并且Bean定义中配置的属性值赋值给实例对象  
+       populateBean(beanName, mbd, instanceWrapper);  
+       if (exposedObject != null) {  
+           //初始化Bean对象  
+           exposedObject = initializeBean(beanName, exposedObject, mbd);  
+       }  
+   }  
+   catch (Throwable ex) {  
+       if (ex instanceof BeanCreationException && beanName.equals(((BeanCreationException) ex).getBeanName())) {  
+           throw (BeanCreationException) ex;  
+       }  
+       else {  
+           throw new BeanCreationException(mbd.getResourceDescription(), beanName, "Initialization of bean failed", ex);  
+       }  
+   }  
+   if (earlySingletonExposure) {  
+       //获取指定名称的已注册的单态模式Bean对象  
+       Object earlySingletonReference = getSingleton(beanName, false);  
+       if (earlySingletonReference != null) {  
+           //根据名称获取的以注册的Bean和正在实例化的Bean是同一个  
+           if (exposedObject == bean) {  
+               //当前实例化的Bean初始化完成  
+               exposedObject = earlySingletonReference;  
+           }  
+           //当前Bean依赖其他Bean，并且当发生循环引用时不允许新创建实例对象  
+           else if (!this.allowRawInjectionDespiteWrapping && hasDependentBean(beanName)) {  
+               String[] dependentBeans = getDependentBeans(beanName);  
+               Set<String> actualDependentBeans = new LinkedHashSet<String>(dependentBeans.length);  
+               //获取当前Bean所依赖的其他Bean  
+               for (String dependentBean : dependentBeans) {  
+                   //对依赖Bean进行类型检查  
+                   if (!removeSingletonIfCreatedForTypeCheckOnly(dependentBean)) {  
+                       actualDependentBeans.add(dependentBean);  
+                   }  
+               }  
+               if (!actualDependentBeans.isEmpty()) {  
+                   throw new BeanCurrentlyInCreationException(beanName,  
+                           "Bean with name '" + beanName + "' has been injected into other beans [" +  
+                           StringUtils.collectionToCommaDelimitedString(actualDependentBeans) +  
+                           "] in its raw version as part of a circular reference, but has eventually been " +  
+                           "wrapped. This means that said other beans do not use the final version of the " +  
+                           "bean. This is often the result of over-eager type matching - consider using " +  
+                           "'getBeanNamesOfType' with the 'allowEagerInit' flag turned off, for example.");  
+               }  
+           }  
+       }  
+   }  
+   //注册完成依赖注入的Bean  
+   try {  
+       registerDisposableBeanIfNecessary(beanName, bean, mbd);  
+   }  
+   catch (BeanDefinitionValidationException ex) {  
+       throw new BeanCreationException(mbd.getResourceDescription(), beanName, "Invalid destruction signature", ex);  
+   }  
+   return exposedObject;  
+}
+```
+可见，方法createBeanInstance：生成Bean所包含的java对象实例   
+populateBean：对Bean属性的依赖注入进行处理  
+
+在createBeanInstance方法中，根据指定的初始化策略，使用静态工厂、工厂方法或者容器的自动装配、反射等特性生成java实例对象  
+```
+//创建Bean的实例对象  
+protected BeanWrapper createBeanInstance(String beanName, RootBeanDefinition mbd, Object[] args) {  
+   //检查确认Bean是可实例化的  
+   Class beanClass = resolveBeanClass(mbd, beanName);  
+   //使用工厂方法对Bean进行实例化  
+   if (beanClass != null && !Modifier.isPublic(beanClass.getModifiers()) && !mbd.isNonPublicAccessAllowed()) {  
+       throw new BeanCreationException(mbd.getResourceDescription(), beanName,  
+               "Bean class isn't public, and non-public access not allowed: " + beanClass.getName());  
+   }  
+   if (mbd.getFactoryMethodName() != null)  {  
+       //调用工厂方法实例化  
+       return instantiateUsingFactoryMethod(beanName, mbd, args);  
+   }  
+   //使用容器的自动装配方法进行实例化  
+   boolean resolved = false;  
+   boolean autowireNecessary = false;  
+   if (args == null) {  
+       synchronized (mbd.constructorArgumentLock) {  
+           if (mbd.resolvedConstructorOrFactoryMethod != null) {  
+               resolved = true;  
+               autowireNecessary = mbd.constructorArgumentsResolved;  
+           }  
+       }  
+   }  
+   if (resolved) {  
+       if (autowireNecessary) {  
+           //配置了自动装配属性，使用容器的自动装配实例化  
+           //容器的自动装配是根据参数类型匹配Bean的构造方法  
+           return autowireConstructor(beanName, mbd, null, null);  
+       }  
+       else {  
+           //使用默认的无参构造方法实例化  
+           return instantiateBean(beanName, mbd);  
+       }  
+   }  
+   //使用Bean的构造方法进行实例化  
+   Constructor[] ctors = determineConstructorsFromBeanPostProcessors(beanClass, beanName);  
+   if (ctors != null ||  
+           mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_CONSTRUCTOR ||  
+           mbd.hasConstructorArgumentValues() || !ObjectUtils.isEmpty(args))  {  
+       //使用容器的自动装配特性，调用匹配的构造方法实例化  
+       return autowireConstructor(beanName, mbd, ctors, args);  
+   }  
+   //使用默认的无参构造方法实例化  
+   return instantiateBean(beanName, mbd);  
+}   
+//使用默认的无参构造方法实例化Bean对象  
+protected BeanWrapper instantiateBean(final String beanName, final RootBeanDefinition mbd) {  
+   try {  
+       Object beanInstance;  
+       final BeanFactory parent = this;  
+       //获取系统的安全管理接口，JDK标准的安全管理API  
+       if (System.getSecurityManager() != null) {  
+           //这里是一个匿名内置类，根据实例化策略创建实例对象  
+           beanInstance = AccessController.doPrivileged(new PrivilegedAction<Object>() {  
+               public Object run() {  
+                   return getInstantiationStrategy().instantiate(mbd, beanName, parent);  
+               }  
+           }, getAccessControlContext());  
+       }  
+       else {  
+           //将实例化的对象封装起来  
+           beanInstance = getInstantiationStrategy().instantiate(mbd, beanName, parent);  
+       }  
+       BeanWrapper bw = new BeanWrapperImpl(beanInstance);  
+       initBeanWrapper(bw);  
+       return bw;  
+   }  
+   catch (Throwable ex) {  
+       throw new BeanCreationException(mbd.getResourceDescription(), beanName, "Instantiation of bean failed", ex);  
+   }  
+}
+```
+Bean对象进行实例化以后。怎么把这些Bean对象之间的依赖关系处理好，以完成整个依赖注入，而这里就涉及到各种Bean对象依赖关系的处理过程了，而这些依赖关系都已经解析到了BeanDefinition。先看populateBean方法  
+```
+//将Bean属性设置到生成的实例对象上  
+protected void populateBean(String beanName, AbstractBeanDefinition mbd, BeanWrapper bw) {  
+   //获取容器在解析Bean定义资源时为BeanDefiniton中设置的属性值  
+   PropertyValues pvs = mbd.getPropertyValues();  
+   //实例对象为null  
+   if (bw == null) {  
+       //属性值不为空  
+       if (!pvs.isEmpty()) {  
+           throw new BeanCreationException(  
+                   mbd.getResourceDescription(), beanName, "Cannot apply property values to null instance");  
+       }  
+       else {  
+           //实例对象为null，属性值也为空，不需要设置属性值，直接返回  
+           return;  
+       }  
+   }  
+   //在设置属性之前调用Bean的PostProcessor后置处理器  
+   boolean continueWithPropertyPopulation = true;  
+   if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {  
+       for (BeanPostProcessor bp : getBeanPostProcessors()) {  
+           if (bp instanceof InstantiationAwareBeanPostProcessor) {  
+               InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;  
+               if (!ibp.postProcessAfterInstantiation(bw.getWrappedInstance(), beanName)) {  
+                   continueWithPropertyPopulation = false;  
+                   break;  
+               }  
+           }  
+       }  
+   }  
+   if (!continueWithPropertyPopulation) {  
+       return;  
+   }  
+   //依赖注入开始，首先处理autowire自动装配的注入  
+   if (mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_BY_NAME ||  
+           mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_BY_TYPE) {  
+       MutablePropertyValues newPvs = new MutablePropertyValues(pvs);  
+       //对autowire自动装配的处理，根据Bean名称自动装配注入  
+       if (mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_BY_NAME) {  
+           autowireByName(beanName, mbd, bw, newPvs);  
+       }  
+       //根据Bean类型自动装配注入  
+       if (mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_BY_TYPE) {  
+           autowireByType(beanName, mbd, bw, newPvs);  
+       }  
+       pvs = newPvs;  
+   }  
+   //检查容器是否持有用于处理单态模式Bean关闭时的后置处理器  
+   boolean hasInstAwareBpps = hasInstantiationAwareBeanPostProcessors();  
+   //Bean实例对象没有依赖，即没有继承基类  
+   boolean needsDepCheck = (mbd.getDependencyCheck() != RootBeanDefinition.DEPENDENCY_CHECK_NONE);  
+   if (hasInstAwareBpps || needsDepCheck) {  
+       //从实例对象中提取属性描述符  
+       PropertyDescriptor[] filteredPds = filterPropertyDescriptorsForDependencyCheck(bw);  
+       if (hasInstAwareBpps) {  
+           for (BeanPostProcessor bp : getBeanPostProcessors()) {  
+               if (bp instanceof InstantiationAwareBeanPostProcessor) {  
+                   InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;  
+                   //使用BeanPostProcessor处理器处理属性值  
+                   pvs = ibp.postProcessPropertyValues(pvs, filteredPds, bw.getWrappedInstance(), beanName);  
+                   if (pvs == null) {  
+                       return;  
+                   }  
+               }  
+           }  
+       }  
+       if (needsDepCheck) {  
+           //为要设置的属性进行依赖检查  
+           checkDependencies(beanName, mbd, filteredPds, pvs);  
+       }  
+   }  
+   //对属性进行注入  
+   applyPropertyValues(beanName, mbd, bw, pvs);  
+}  
+//解析并注入依赖属性的过程  
+protected void applyPropertyValues(String beanName, BeanDefinition mbd, BeanWrapper bw, PropertyValues pvs) {  
+   if (pvs == null || pvs.isEmpty()) {  
+       return;  
+   }  
+   //封装属性值  
+   MutablePropertyValues mpvs = null;  
+   List<PropertyValue> original;  
+   if (System.getSecurityManager()!= null) {  
+       if (bw instanceof BeanWrapperImpl) {  
+           //设置安全上下文，JDK安全机制  
+           ((BeanWrapperImpl) bw).setSecurityContext(getAccessControlContext());  
+       }  
+   }  
+   if (pvs instanceof MutablePropertyValues) {  
+       mpvs = (MutablePropertyValues) pvs;  
+       //属性值已经转换  
+       if (mpvs.isConverted()) {  
+           try {  
+               //为实例化对象设置属性值  
+               bw.setPropertyValues(mpvs);  
+               return;  
+           }  
+           catch (BeansException ex) {  
+               throw new BeanCreationException(  
+                       mbd.getResourceDescription(), beanName, "Error setting property values", ex);  
+           }  
+       }  
+       //获取属性值对象的原始类型值  
+       original = mpvs.getPropertyValueList();  
+   }  
+   else {  
+       original = Arrays.asList(pvs.getPropertyValues());  
+   }  
+   //获取用户自定义的类型转换  
+   TypeConverter converter = getCustomTypeConverter();  
+   if (converter == null) {  
+       converter = bw;  
+   }  
+   //创建一个Bean定义属性值解析器，将Bean定义中的属性值解析为Bean实例对象  
+   //的实际值  
+   BeanDefinitionValueResolver valueResolver = new BeanDefinitionValueResolver(this, beanName, mbd, converter);  
+   //为属性的解析值创建一个拷贝，将拷贝的数据注入到实例对象中  
+   List<PropertyValue> deepCopy = new ArrayList<PropertyValue>(original.size());  
+   boolean resolveNecessary = false;  
+   for (PropertyValue pv : original) {  
+       //属性值不需要转换  
+       if (pv.isConverted()) {  
+           deepCopy.add(pv);  
+       }  
+       //属性值需要转换  
+       else {  
+           String propertyName = pv.getName();  
+           //原始的属性值，即转换之前的属性值  
+           Object originalValue = pv.getValue();  
+           //转换属性值，例如将引用转换为IoC容器中实例化对象引用  
+           Object resolvedValue = valueResolver.resolveValueIfNecessary(pv, originalValue);  
+           //转换之后的属性值  
+           Object convertedValue = resolvedValue;  
+           //属性值是否可以转换  
+           boolean convertible = bw.isWritableProperty(propertyName) &&  
+                   !PropertyAccessorUtils.isNestedOrIndexedProperty(propertyName);  
+           if (convertible) {  
+               //使用用户自定义的类型转换器转换属性值  
+               convertedValue = convertForProperty(resolvedValue, propertyName, bw, converter);  
+           }  
+           //存储转换后的属性值，避免每次属性注入时的转换工作  
+           if (resolvedValue == originalValue) {  
+               if (convertible) {  
+                   //设置属性转换之后的值  
+                   pv.setConvertedValue(convertedValue);  
+               }  
+               deepCopy.add(pv);  
+           }  
+           //属性是可转换的，且属性原始值是字符串类型，且属性的原始类型值不是  
+           //动态生成的字符串，且属性的原始值不是集合或者数组类型  
+           else if (convertible && originalValue instanceof TypedStringValue &&  
+                   !((TypedStringValue) originalValue).isDynamic() &&  
+                   !(convertedValue instanceof Collection || ObjectUtils.isArray(convertedValue))) {  
+               pv.setConvertedValue(convertedValue);  
+               deepCopy.add(pv);  
+           }  
+           else {  
+               resolveNecessary = true;  
+               //重新封装属性的值  
+               deepCopy.add(new PropertyValue(pv, convertedValue));  
+           }  
+       }  
+   }  
+   if (mpvs != null && !resolveNecessary) {  
+       //标记属性值已经转换过  
+       mpvs.setConverted();  
+   }  
+   //进行属性依赖注入  
+   try {  
+       bw.setPropertyValues(new MutablePropertyValues(deepCopy));  
+   }  
+   catch (BeansException ex) {  
+       throw new BeanCreationException(  
+               mbd.getResourceDescription(), beanName, "Error setting property values", ex);  
+   }  
+}
+```
+可以看出，对属性的注入过程分以下两种情况：  
+(1)属性值类型不需要转换时，不需要解析属性值，直接准备进行依赖注入。
+
+(2)属性值需要进行类型转换时，如对其他对象的引用等，首先需要解析属性值，然后对解析后的属性值进行依赖注入。
+
+对属性值的解析是在BeanDefinitionValueResolver类中的resolveValueIfNecessary方法中进行的，对属性值的依赖注入是通过bw.setPropertyValues方法实现的，该方法使用委托模式。依赖注入的具体实现交由其实现类BeanWrapperImpl来完成。  
+
+
+通过对上面注入依赖代码的分析，我们已经明白了Spring IoC容器是如何将属性的值注入到Bean实例对象中去的：
+
+(1)对于集合类型的属性，将其属性值解析为目标类型的集合后直接赋值给属性。
+
+(2)对于非集合类型的属性，大量使用了JDK的反射和内省机制，通过属性的getter方法(reader method)获取指定属性注入以前的值，同时调用属性的setter方法(writer method)为属性设置注入后的值。看到这里相信很多人都明白了Spring的setter注入原理。
+
+至此Spring IoC容器对Bean定义资源文件的定位，载入、解析和依赖注入已经全部分析完毕，现在Spring IoC容器中管理了一系列靠依赖关系联系起来的Bean，程序不需要应用自己手动创建所需的对象，Spring IoC容器会在我们使用的时候自动为我们创建，并且为我们注入好相关的依赖，这就是Spring核心功能的控制反转和依赖注入的相关功能。

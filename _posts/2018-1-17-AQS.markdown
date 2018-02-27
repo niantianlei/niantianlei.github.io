@@ -30,17 +30,17 @@ catalog:    true
 ### 独占式同步状态获取与释放
 通过调用同步器的`acquire(int arg)`方法获取同步状态  
 ![acquire]({{ "/img/post/AQS/acquire.png" | prepend: site.baseurl }} )  
-主要流程：首先调用自定义同步器实现的`tryAcquire(int arg)`方法，该方法保证线程安全的获取同步状态，如果同步状态获取失败，则构造一个独占式的同步节点，并且在一个死循环中通过CAS加入到同步队列的尾部，最后使该节点在死循环中获取同步状态。  
+主要流程：首先调用自定义同步器实现的`tryAcquire(int arg)`方法，此方法用protected修饰表面是要被子类重写的，该方法保证线程安全的获取同步状态，如果同步状态获取失败，则构造一个独占式的同步节点，并且在一个死循环中通过CAS加入到同步队列的尾部，最后使该节点在死循环中获取同步状态。  
 
 通过调用同步器的`release(int arg)`方法释放同步状态  
 ![release]({{ "/img/post/AQS/release.png" | prepend: site.baseurl }} )  
-该方法在释放了同步状态后，会唤醒其后继节点。  
+成功释放同步状态后，会唤醒其后继节点。其中，tryRelease方法仍需重写。  
 
 ### 共享式同步状态获取与释放
 共享式访问资源时，其他共享式的访问均被允许，而独占式访问会被阻塞；独占式访问资源时，其他访问均被阻塞。  
 ![acquireShared]({{ "/img/post/AQS/acquireShared.png" | prepend: site.baseurl }} )   
-同步器调用tryAcquireShared(int arg)方法获取同步状态，返回int类型，当返回值大于等于0时，表示能够获取到同步状态，  
-否则调用下面的方法，通过自旋获取同步状态  
+同步器调用tryAcquireShared(int arg)方法获取同步状态，返回int类型，当返回值大于0时，表示能够获取到同步状态，并且还有剩余同步状态供其他线程选取；返回值等于0，表示能够获取到同步状态，但没有可用的同步状态；返回值小于0，表示获取同步状态失败。  
+如果获取失败则调用`doAcquireShared`方法。  
 ```
 private void doAcquireShared(int arg) {
     final Node node = addWaiter(Node.SHARED);//将共享节点加入队列的尾部
@@ -51,7 +51,7 @@ private void doAcquireShared(int arg) {
             final Node p = node.predecessor();//前驱节点
             if (p == head) {//如果到head的下一个，因为head是拿到资源的线程，此时node被唤醒，很可能是head用完资源来唤醒自己的
                 int r = tryAcquireShared(arg);//尝试获取资源
-                if (r >= 0) {//成功
+                if (r >= 0) {//获取成功
                     setHeadAndPropagate(node, r);//将head指向自己，还有剩余资源可以再唤醒之后的线程
                     p.next = null;  
                     if (interrupted)//如果等待过程中被打断过，此时将中断补上。

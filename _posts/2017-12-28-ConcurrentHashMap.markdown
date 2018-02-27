@@ -400,7 +400,7 @@ public V get(Object key) {
 1、根据key计算hash值；并根据hash值计算出在table中的位置i；  
 2、如果table为空或table[i]为null，返回null；  
 3、首先判断table表中首节点的hash值是否为待查询的key的hash值，如果是进一步判断key是否相等，如果相等直接返回value。再判断首节点的hash值是否小于0，小于0说明该节点正在扩容，则调用节点的find()(find()是Node类的方法实际上也是遍历寻找过程)方法进行寻找；  
-4、都没找到，则进行遍历查找。  
+4、都没找到，则进行遍历查找，仍未找到，返回null。    
 
 #### size实现
 ```
@@ -480,7 +480,7 @@ final long sumCount() {
 如果这个位置为空，就在原table中的i位置放入ForwardingNode节点，表示这个槽位处理完毕；  
 如果位置i的元素hash值为-1将advance设为true表示已完成；  
 否则，给头节点增加synchronized锁，  
-如果这个位置是Node节点（hash>=0），如果它是一个链表的头节点，就构造两个子链表，把他们分别放在nextTable的i和i+n的位置上，位置的判断同HashMap；  
+如果这个位置是Node节点（hash>=0），如果它是一个链表的头节点，就构造两个子链表（一个是倒序，一个是从lastRun节点开始正序，后文有详细介绍），把他们分别放在nextTable的i和i+n的位置上，位置的判断同HashMap；  
 如果这个位置是TreeBin节点，也做一个反序处理，并且判断是否需要untreefi，把处理的结果分别放在nextTable的i和i+n的位置上；  
 最后在table的i位置上插入forwardNode节点  表示已经处理过该节点；  
 遍历过所有的节点以后就完成了复制工作，这时让nextTable作为新的table，完成扩容。  
