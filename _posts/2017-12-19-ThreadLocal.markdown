@@ -46,3 +46,5 @@ Entry中是没有链表结构的，所以不像HashMap那样处理哈希冲突�
 ### 内存泄露问题
 因为是以空间换时间，需要考虑内存泄漏问题。ThreadLocalMap中的Entry使用了弱引用，若没有任何强引用会被下一次GC回收，无论内存是否充足，但此时value不会被GC回收；而value没有被回收，就会出现key为null的Entry。这时没有办法访问key为null的value，那么到这个线程结束以前，就会一直存在一条强引用链，只有当线程终止时，才会回收，这一阶段会存在内存泄漏。而ThreadLocal的get(),set(),remove()方法都会清除线程ThreadLocalMap里所有key为null的value。  
 因此，最好在使用完ThreadLocal里的对象后调用remove方法，或者set成null。  
+
+那如果不用弱引用，使用强引用，如果线程没有结束，引用ThreadLocal的对象被回收，ThreadLocalMap仍持有ThreadLocal的强引用，就会发生内存泄漏。
