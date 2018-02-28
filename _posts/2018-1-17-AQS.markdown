@@ -35,7 +35,7 @@ catalog:    true
 
 通过调用同步器的`release(int arg)`方法释放同步状态  
 ![release]({{ "/img/post/AQS/release.png" | prepend: site.baseurl }} )  
-成功释放同步状态后，会唤醒其后继节点。其中，tryRelease方法仍需重写。  
+成功释放同步状态后，会唤醒其后继节点。后继节点如果成功获取同步资源后，会将自己设为首节点。其中，tryRelease方法仍需重写。  
 
 ### 共享式同步状态获取与释放
 共享式访问资源时，其他共享式的访问均被允许，而独占式访问会被阻塞；独占式访问资源时，其他访问均被阻塞。  
