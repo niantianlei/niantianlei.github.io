@@ -6,7 +6,6 @@ author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
     - 算法
-	- 动态规划
 ---
 
 > 下滑这里查看更多内容
