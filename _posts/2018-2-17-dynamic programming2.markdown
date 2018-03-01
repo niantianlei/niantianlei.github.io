@@ -1,7 +1,7 @@
 ---
 layout:     post
-title:      "经典动态规划问题"
-subtitle:   " \"dynamic programming\""
+title:      "动态规划二"
+subtitle:   " \"dynamic programming2\""
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 tags:
