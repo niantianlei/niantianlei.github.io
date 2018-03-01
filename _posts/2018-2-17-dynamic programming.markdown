@@ -11,7 +11,7 @@ tags:
 
 > 下滑这里查看更多内容
 
-很久之前看了[背包九讲](https://github.com/tianyicui/pack)，对动态规划问题的理解有所加深。前几天又看了一些动态规划的其他经典题目，这里做个总结。  
+很久之前看了[背包九讲](https://github.com/tianyicui/pack)，对动态规划问题的理解有所加深（最后附有背包九讲的Java代码）。前几天又看了一些动态规划的其他经典题目，这里做个总结。  
 
 解决动态规划问题一般分为两步：  
 1.确定问题可以用动态规划思想解决，之前写过一个[入门博客](http://niantianlei.com/2017/09/14/dynamic-programming/)里面有所涉及，要想真正掌握我觉得还是需要多看、多写、多思考；  
@@ -19,199 +19,229 @@ tags:
 
 下面看具体例子吧
 
-### 经典问题1：找零钱  
-题目介绍到处都有，不重复了。目标钱数为n，共m种零钱面值。  
-可以分解问题包含第m种面值或不包含第m种面值  
-计数总和为`co(a, m - 1, n) + co(a, m, n - a[m-1])`  
-第一项是没用第m种零钱，第二项是用了第m种零钱。  
-具体代码如下  
+## 问题1——找零钱
+之前的博客写过这个问题，但是是针对找零钱的方法数量。  
+现在讨论最少货币找出零钱。  
+#### 每种面值无限使用
+每种问题无限使用的条件下，其实与多重背包问题等价，面值相当于物品的重量，区别就是需要重量正好等于背包容量。我们使用背包九讲中的解法，改变初始值，即可解决。  
+
+转移方程为dp[i][j] = min{dp[i-1][j], dp[i][j-arr[i]]+1}
 ```
-public static int co(int[] a, int m, int n) {
-	if(n == 0) return 1;
-	if(n < 0 || m==0) return 0;
-	return co(a, m - 1, n) + co(a, m, n - a[m-1]);
-}
-```
-
-如果需要将每种方案记录下来，代码如下  
-```
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
- 
-public class Demo {
-
-    public static void main(String[] args) {
-        int[] arr = {1,2,3,4,5};
-        HashSet<ArrayList<Integer>> fun = fun(arr, 8);
-        for (ArrayList<Integer> arrayList : fun) {
-            System.out.println(arrayList.toString());
-        }
-    }
- 
-    private static HashSet<ArrayList<Integer>> fun(int[] arr, int n) {
-        HashSet<ArrayList<Integer>> list = new HashSet<>();
-        ArrayList<Integer> subList = new ArrayList<Integer>();
-        Arrays.sort(arr);
-        fun1(list, subList, arr, 0, n);
-         
-        return list;
-    }
- 
-    private static void fun1(HashSet<ArrayList<Integer>> list,
-            ArrayList<Integer> subList, int[] arr, int i, int n) {
-        if (n == 0) {
-            list.add(subList);
-            return;
-        }
-        if(n<0)
-            return ;
-             
-        for (int j = i; j < arr.length; j++) {
-            ArrayList<Integer> newSub = new ArrayList<Integer>(subList);
-            newSub.add(arr[j]);
-            fun1(list, newSub, arr,j, n-arr[j]);
-        }
-    }
-}
-```
-当要求零钱数目最少时，就转化为贪心算法  
-```
-public static int[] greed(int m[], int n) {
-    int k = m.length;
-
-    int[] nums = new int[k];
-    for(int i = 0; i < k; i++) {
-            nums[i] = n/m[i];
-            n = n % m[i];
-    }
-    return nums;
-}
- ```
-nums存储各种零钱的数目。  
-**注意**：m要降序排列
-
-
-
-
-
-### 经典问题2：01背包问题  
-w[i]: 第i个物体的重量；  
-p[i]: 第i个物体的价值；  
-c[i][m]: 前i个物体放入容量为m的背包的最大价值；  
-c[i-1][m]: 前i-1个物体放入容量为m的背包的最大价值；  
-c[i-1][m-w[i]]: 前i-1个物体放入容量为m-w[i]的背包的最大价值；  
-可得关系式：`c[i][m] = Math.max(c[i-1][m-w[i]]+p[i], c[i-1][m]);`  
-由关系式可得最优子结构。
-打表代码如下：  
-```
-package test;
-
-public class BackPack {
-    public static void main(String[] args) {
-        int m = 12;
-        int n = 8;
-        int w[] = {2,1,3,2,4,5,3,1};
-        int p[] = {13,10,24,15,28,33,20,8};
-        int c[][] = BackPack_Solution(m, n, w, p);
-        for (int i = 1; i <=n; i++) {
-            for (int j = 1; j <=m; j++) {
-                System.out.print(c[i][j]+"\t");
-                if(j==m){
-                    System.out.println();
-                }
+public static int coinChange(int[] coins, int amount) {
+    int max = Integer.MAX_VALUE;
+    int[] dp = new int[amount + 1];
+    Arrays.fill(dp, max);
+    dp[0] = 0;
+    for(int i = 0; i < coins.length; i++) {
+        for(int j = coins[i]; j < amount + 1; j++) {
+            if(dp[j-coins[i]] != max) {
+                dp[j] = Math.min(dp[j], dp[j-coins[i]] + 1);
             }
         }
-        System.out.print(c[n][m]);
     }
-
-    /**
-     * @param m 表示背包的最大容量
-     * @param n 表示商品个数
-     * @param w 表示商品重量数组
-     * @param p 表示商品价值数组
-     */
-    public static int[][] BackPack_Solution(int m, int n, int[] w, int[] p) {
-        //c[i][m]表示前i件物品恰放入一个重量为m的背包可以获得的最大价值
-        int c[][] = new int[n + 1][m + 1];
-
-        for (int i = 1; i < n + 1; i++) {
-            for (int j = 1; j < m + 1; j++) {
-                //当物品为i件重量为j时，如果第i件的重量(w[i-1])小于重量j时，c[i][j]为下列两种情况之一：
-                //(1)物品i不放入背包中，所以c[i][j]为c[i-1][j]的值
-                //(2)物品i放入背包中，则背包剩余重量为j-w[i-1],所以c[i][j]为c[i-1][j-w[i-1]]的值加上当前物品i的价值
-                if (w[i - 1] <= j) {
-                    c[i][j] = Math.max(c[i - 1][j], c[i - 1][j - w[i - 1]] + p[i - 1]);
-                } else
-                    c[i][j] = c[i - 1][j];
-            }
-        }
-        return c;
-    }
+    return dp[amount] == max ? -1 : dp[amount];
 }
-
 ```
-### 经典问题3：最长公共子序列  
-这里的子序列是指从该字符串中去掉任意多个字符后剩下的字符在不改变顺序的情况下组成的新子字符串。  
-例如A = "abcdef"和B = "adefcb" 的最长公共子序列就是adef。  
-最优子结构为:  
-`if(s1.charAt(i) == s2.charAt(j)) c[i,j] = c[i-1][j-1] + 1;`  
-`if(s1.charAt(i) != s2.charAt(j)) c[i,j] = Math.max(c[i][j-1], c[i-1][j]);`  
-先做备忘录，利用备忘录可以找到最长公共子序列字符，代码如下：  
+#### 每个面值只使用一次 
+同样地，此问题与01背包等价。参考背包问题，只需要将循环的顺序改变即可，  
+这是因为，此时的转移方程：dp[i][j] = min{dp[i-1][j], dp[i-1][j-arr[i]]+1}  
 ```
-package test;
-
-public class t {
-
-    public static void main(String[] args) {
-        String str1 = "abcdef";
-        String str2 = "adefcb";
-        // 做备忘录
-        int[][] dp = LCS(str1, str2);
-        // 打印矩阵
-        for (int i = 0; i <= str1.length(); i++) {
-            for (int j = 0; j <= str2.length(); j++) {
-                System.out.print(dp[i][j] + "   ");
-            }
-            System.out.println();
-        }
-        // 输出LCS
-        print(dp, str1, str2, str1.length(), str2.length());
-    }
-
-    public static int[][] LCS(String str1, String str2) {
-        int[][] dp = new int[str1.length() + 1][str2.length() + 1];
-        for (int i = 1; i <= str1.length(); i++) {
-            for (int j = 1; j <= str2.length(); j++) {
-                if (str1.charAt(i - 1) == str2.charAt(j - 1)) {
-                    dp[i][j] = dp[i - 1][j - 1] + 1;
-                } else {
-                    dp[i][j] = (dp[i - 1][j] >= dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1]);
-                }
-            }
-        }
-        return dp;
-    }
-
-    // 根据矩阵输出LCS
-    public static void print(int[][] opt, String s1, String s2, int i, int j) {
-        if (i == 0 || j == 0) {
-            return;
-        }
-        if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
-            print(opt, s1, s2, i - 1, j - 1);
-            System.out.print(s1.charAt(i - 1));
-        } else if (opt[i - 1][j] >= opt[i][j]) {
-            print(opt, s1, s2, i - 1, j);
-        } else {
-            print(opt, s1, s2, i, j - 1);
+for(int i = 0; i < coins.length; i++) {
+    for(int j = amount; j >= coins[i]; j--) {
+        if(dp[j-coins[i]] != max) {
+            dp[j] = Math.min(dp[j], dp[j-coins[i]] + 1);
         }
     }
 }
+``` 
+最后附上动态规划解决找零钱方法数量问题，此方法是对之前博客方法的优化  
+```
+int[] dp = new int[amount + 1];
+		for(int i = 0; coins[0] * i <= amount; i++) {
+			dp[coins[0] * i] = 1;
+		}
+		for(int i = 1; i < coins.length; i++) {
+			for(int j = amount; j <= amount; j++) {
+				dp[j] += j - coins[i] >= 0 ? dp[j - coins[i]] : 0;
+			}
+		}
+		return dp[amount];
+```
+## 问题2——最长公共子串
+用一个二维数组c[][]，记录以str1(i-1)和str2(j-1)为公共子串最后一个字符的最长公共子串长度。  
+与最长公共子序列不同的是，这里数组最右下方的元素不是答案，因为此时的动态规划表的意义产生了变化。  
+因此，转移方程：  
+str1.charAt(i-1)等于str2.charAt(j-1)，c[i][j]=c[i-1][j-1]+1，  
+否则，c[i][j]=0.  
+```
+int len1 = str1.length();  
+int len2 = str2.length();  
+int result = 0;     //记录最长公共子串长度  
+int c[][] = new int[len1+1][len2+1]; 
+for (int i = 0; i <= len1; i++) {  
+    for( int j = 0; j <= len2; j++) {  
+        if(i == 0 || j == 0) {  
+            c[i][j] = 0;  
+        } else if (str1.charAt(i-1) == str2.charAt(j-1)) {  
+            c[i][j] = c[i-1][j-1] + 1;  
+            result = Math.max(c[i][j], result);  
+        } else {  
+            c[i][j] = 0;
+        }  
+    }  
+}  
+```
+要找这个子串就非常容易了，找到最长时公共子串的尾字符，然后向前数result长度即为最长的公共子串。  
+```
+int end = 0;
+for(int i = 1; i <= len1; i++) {
+	for(int j = 1; j <= len2; j++) {
+		if(result == c[i][j]) {
+			end = i;
+		}
+	}
+}
+String s = str1.substring(end - result, end);
+```
+## 问题3——最长递增子序列
+用dp[i]表示以dp[i]结尾的最长递增子序列的长度，  
+转移方程为dp[i] = Math.max(dp[i], max{dp[j], i<j && arr[j]<arr[i]} + 1)  
+```
+int[] dp = new int[arr.length];
+for(int i = 0; i < arr.length; i++) {
+	dp[i] = 1; 
+	for(int j = 0; j < i; j++) {
+		if(arr[i] > arr[j]) {
+			dp[i] = Math.max(dp[i], dp[j] + 1);
+		}
+	}
+}
+```
+最长递增子序列的寻找，先找到最长递增子序列的尾字符所在位置index，然后从此位置向前遍历，如果dp[i]正好是dp[index]-1说明子序列用上了该字符，记录下来。记录下LIS长度的字符后，即完成。  
+```
+int index = 0;      //最大的位置，从
+int len = 0;        //最长递增子序列长度
+for(int i = 0; i < dp.length; i++) {
+	if(dp[i] > len) {
+		len = dp[i];
+		index = i;
+	}
+}
+int[] lis = new int[len];       //最长子序列
+lis[--len] = arr[index];
+for(int i = index; i >= 0; i--) {
+	if(arr[i] < arr[index] && dp[i] == dp[index] - 1) {
+		lis[--len] = arr[i];
+		index = i;
+	}
+}
 ```
 
+背包九讲的Java解：   
+```
+//01背包，解一    复杂度O(m*N)
+public static int bagg01(int[] c, int[] w, int m) {
+	int N = c.length;
+	int[][] res = new int [N+1][m+1];
+	for(int i = 1; i < N+1; i++) {
+		for(int j = 1; j < m+1; j++) {
+			if(j >= c[i-1]) {
+				res[i][j] = Math.max(res[i-1][j], res[i-1][j-c[i-1]] + w[i-1]);
+			} else {
+				res[i][j] = res[i-1][j];
+			}
+		}
+	}
+	return res[N][m];
+}
+//01背包，解二。空间复杂度O(m)
+public static int bag01(int[] c, int[] w, int m) {
+	int N = c.length;
+	int[] res = new int[m+1];
+	for(int i = 1; i <= N; i++) {
+		for(int j = m; j >= c[i-1]; j--) {
+			res[j] = Math.max(res[j], res[j-c[i-1]] + w[i-1]);
+		}
+	}
+	return res[m];
+}
+//完全背包的两个解,空间复杂度分别为Nm,m
+public static int bag1(int[] c, int[] w, int m) {
+	int N = c.length;
+	int[][] res = new int[N+1][m+1];
+	for(int i = 0; i <= m; i++) {
+		res[0][i] = 0;
+	}
+	for(int i = 1; i <= N; i++) {
+		for(int j = 1; j <= m; j++) {
+			if(j >= c[i-1]) {
+				res[i][j] = Math.max(res[i-1][j], res[i][j-c[i-1]] + w[i-1]);
+			} else {
+				res[i][j] = res[i-1][j];
+			}
+		}
+	}
+	return res[N][m];
+}
+public static int bag2(int[] c, int[] w, int m) {
+	int N = c.length;
+	int[] res = new int[m+1];
+	for(int i = 0; i <= m; i++) {
+		res[i] = 0;
+	}
+	for(int i = 1; i <= N; i++) {
+		for(int j = c[i-1]; j <= m; j++) {
+			res[j] = Math.max(res[j], res[j-c[i-1]] + w[i-1]);
+		}
+	}
+	return res[m];
+}
 
+//多重背包问题
+public static int bagmul(int[] c, int[] w, int[] nums, int m) {
+	int[] res = new int[m+1];
+	int N = c.length;
+	for(int i = 1; i <= N; i++) {
+		if(c[i-1] * nums[i-1] >= m) {
+			//完全背包问题
+			for(int j = c[i-1]; j <= m; j++) {
+				res[j] = Math.max(res[j], res[j-c[i-1]] + w[i-1]);
+			}
+		} else {
+			int k = 1;
+			while(k < nums[i-1]) {
+				//01背包问题
+				for(int j = m; j >= k*c[i-1]; j--) {
+					res[j] = Math.max(res[j], res[j-k*c[i-1]] + k*w[i-1]);
+				}
+				nums[i-1] -= k;
+				k = 2*k;
+			}
+			//01背包问题
+			for(int j = m; j >= c[i-1] * nums[i-1]; j--) {
+				res[j] = Math.max(res[j], res[j-nums[i-1]*c[i-1]] + nums[i-1] * w[i-1]);
+			}
+		}
+	}
+	return res[m];
+}
 
-
-参考：
-[金矿模型](http://www.jianshu.com)
+//记录最优解
+public static int[][] bag99(int[] c, int[] w, int m) {
+	int N = c.length;
+	int[] res = new int[m+1];
+	int[][] G = new int[N+1][m+1];
+	for(int i = 0; i <= m; i++) {
+		res[i] = 0;
+	}
+	for(int i = 1; i <= N; i++) {
+		for(int j = m; j >= c[i-1]; j--) {
+			if(res[j] < res[j-c[i-1]] + w[i-1]) {
+				res[j] = res[j-c[i-1]] + w[i-1];
+				G[i][j] = 1;
+			}  
+		}
+	}
+	return G;
+}
+```
