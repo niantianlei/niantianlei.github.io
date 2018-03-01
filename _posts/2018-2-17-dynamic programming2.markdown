@@ -2,12 +2,14 @@
 layout:     post
 title:      "动态规划二"
 subtitle:   " \"dynamic programming2\""
+
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
+header-mask: 0.4
+catalog:    true
 tags:
     - 算法
 ---
-
 > 下滑这里查看更多内容
 
 很久之前看了[背包九讲](https://github.com/tianyicui/pack)，对动态规划问题的理解有所加深（最后附有背包九讲的Java代码）。前几天又看了一些动态规划的其他经典题目，这里做个总结。  
@@ -136,7 +138,7 @@ for(int i = index; i >= 0; i--) {
 }
 ```
 
-背包九讲的Java解：   
+##### 背包九讲的Java解：   
 ```
 //01背包，解一    复杂度O(m*N)
 public static int bagg01(int[] c, int[] w, int m) {
