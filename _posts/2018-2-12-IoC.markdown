@@ -103,8 +103,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 ## IoC容器的初始化
 初始化过程包括以下几点：  
 1、Resource定位，IoC容器根据开发者的配置，进行资源定位；  
-2、BeanDefinition的载入，Spring根据开发者的配置获取对应的POJO，用以生成对应实例的过程；  
-3、BeanDefinition的注册，把通过BeanDefinition载入的POJO注册到IoC容器中。  
+2、BeanDefinition的载入，Spring根据开发者的配置转化成BeanDefinition；  
+3、BeanDefinition的注册，把BeanDefinition向IoC容器中注册，实质就是注入到map中。  
 
 ### XmlBeanFactory初始化
 ```
