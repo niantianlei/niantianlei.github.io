@@ -241,8 +241,7 @@ public void setConfigLocations(String[] locations) {
 
 二、AbstractApplicationContext的refresh函数载入Bean定义过程：    
 
-Spring IoC容器对Bean定义资源的载入是从refresh()函数开始的，refresh()是一个模板方法，refresh()方法的作用是：在创建IoC容器前，如果已经有容器存在，则需要把已有的容器销毁和关闭，以保证在refresh之后使用的是新建立起来的IoC容器。refresh的作用类似于对IoC容器的重启，在新建立好的容器中对容器进行初始化，对Bean定义资源进行载入。  
-
+Spring IoC容器对Bean定义资源的载入是从refresh()函数开始的。  
 FileSystemXmlApplicationContext通过调用其父类AbstractApplicationContext的refresh()函数启动整个IoC容器对Bean定义的载入过程：  
 ```
 public void refresh() throws BeansException, IllegalStateException {  
