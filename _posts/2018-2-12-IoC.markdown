@@ -8,7 +8,7 @@ header-img: "img/post-bg-2016.jpg"
 header-mask: 0.4
 catalog:    true
 tags:
-    - Spring源码
+    - Spring
 ---
 
 控制反转(Inversion of Control, IoC)，就是将对象的创建和依赖关系交给第三方容器处理，用的时候直接去容器里取即可。对象的生命周期也由Spring容器控制。    
