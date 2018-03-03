@@ -1,8 +1,8 @@
 ---
 layout:     post
 title:      "悲观锁、乐观锁实现抢红包"
-subtitle:   " \"Red Packet\""
-
+subtitle:   " \"red packet\""
+date:   2018-3-3 22:15:18 +0800
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 header-mask: 0.4
