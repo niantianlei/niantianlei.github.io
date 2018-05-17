@@ -8,7 +8,7 @@ header-img: "img/post-bg-2016.jpg"
 header-mask: 0.4
 catalog:    true
 tags:
-    - 并发设计
+    - 高并发
 ---
 > 下滑这里查看更多内容
 
