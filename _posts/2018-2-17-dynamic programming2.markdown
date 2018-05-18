@@ -58,15 +58,15 @@ for(int i = 0; i < coins.length; i++) {
 最后附上动态规划解决找零钱方法数量问题，此方法是对之前博客方法的优化  
 ```
 int[] dp = new int[amount + 1];
-		for(int i = 0; coins[0] * i <= amount; i++) {
-			dp[coins[0] * i] = 1;
+	for(int i = 0; coins[0] * i <= amount; i++) {
+		dp[coins[0] * i] = 1;
+	}
+	for(int i = 1; i < coins.length; i++) {
+		for(int j = coin[i]; j <= amount; j++) {
+			dp[j] += dp[j - coins[i]];
 		}
-		for(int i = 1; i < coins.length; i++) {
-			for(int j = amount; j <= amount; j++) {
-				dp[j] += j - coins[i] >= 0 ? dp[j - coins[i]] : 0;
-			}
-		}
-		return dp[amount];
+	}
+return dp[amount];
 ```
 ## 问题2——最长公共子串
 用一个二维数组c[][]，记录以str1(i-1)和str2(j-1)为公共子串最后一个字符的最长公共子串长度。  
