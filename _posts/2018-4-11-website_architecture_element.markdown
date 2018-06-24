@@ -2,11 +2,9 @@
 layout:     post
 title:      "网站核心架构要素"
 subtitle:   " \"website architecture element\""
-
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
 header-mask: 0.4
-catalog:    true
 tags:
     - 架构设计
 ---
