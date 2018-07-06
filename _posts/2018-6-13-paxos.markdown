@@ -1,7 +1,7 @@
 ---
 layout:     post
-title:      "conformance protocol in distributed system"
-subtitle:   " \"分布式一致性协议\""
+title:      "分布式一致性协议"
+subtitle:   " \"conformance protocol in distributed system\""
 
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"
