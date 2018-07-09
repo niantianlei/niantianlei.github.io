@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "动态规划二"
-subtitle:   " \"dynamic programming2\""
+subtitle:   " \"dynamic programming II\""
 
 author:     "Nian Tianlei"
 header-img: "img/post-bg-2016.jpg"

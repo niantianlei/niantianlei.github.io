@@ -164,3 +164,16 @@ BASE是对CAP中一致性和可用性权衡的结果，其来源对大规模互�
 缺点是：参与者收到preCommit消息后，如果网络出现故障，参与者依然会进行事务的提交，会出现数据的不一致性。  
 
 ## Paxos算法
+在Paxos算法中，有三种参与角色，用Proposer，Acceptor，Learner表示。  
+Paxos可分为两阶段提交的算法执行过程  
+阶段一：  
+1.Proposer选择一个提案编号Mn，然后向Acceptor的某个超过半数的子集成员发送编号为Mn的Prepare请求  
+2.如果一个Acceptor收到一个编号为Mn的Prepare请求，且编号Mn大于该Acceptor已经响应的所有Prepare请求的编号，那么它就会将它已经批准过的最大编号的提案作为响应反馈给Proposer，同时该Acceptor会承诺不会再批准任何编号小于Mn的提案。  
+阶段二：  
+1.如果Proposer收到来自半数以上的Acceptor对于其发出的编号为Mn的Prepare请求的响应，那么它就会发送一个针对[Mn, Vn]提案的Accept请求给Acceptor。Vn的值就是收到的响应中编号最大的提案的值，如果响应中不包含任何提案，那它就是任意值。  
+2.如果Acceptor收到这个针对[Mn, Vn]提案的Accept请求，只要该Acceptor尚未对编号大于Mn的Prepare请求作出相应，它就可以通过这个提案。  
+
+**提案的获取**  
+可以让所有的Acceptor将他们对提案的批准情况发给一个主Learner，然后这个猪Learner负责通知其他learner。  
+但是主Learner存在单点问题。  
+可以将主Learner的范围扩大，即Acceptor可以将批准的提案发送给一个特定的Learner集合。该集合中的每个learner都可以在一个提案被选定后通知其他所有的learner。  

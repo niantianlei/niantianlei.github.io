@@ -9,6 +9,7 @@ header-mask: 0.4
 catalog:    true
 tags:
     - 分布式
+    - 分布式存储
 ---
 
 
